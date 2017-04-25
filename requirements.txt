@@ -1,0 +1,3 @@
+requests
+cherrypy
+-e git://github.com/websocket-client/websocket-client.git#egg=websocket-client

@@ -1,0 +1,54 @@
+body {
+    font: bold 18px/26px Arial, sans-serif;
+    overflow: hidden;
+    /*
+    background: url('http://orig09.deviantart.net/8023/f/2017/094/6/6/nier___automata___2b_by_generalthunderbat-db4meaj.jpg') no-repeat;
+    */
+}
+html {
+    background: transparent;
+}
+
+.o0 {
+    opacity: 0;
+}
+
+#chat {
+    text-align: left;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    color: white;
+    width: 420px;
+    height: 380px;
+    padding: 0 20px;
+    top: 20px;
+    right: 0;
+    overflow: hidden;
+    position: absolute;
+}
+#chat, #chat > div > div {
+    transition: opacity 1s;
+}
+#chat > div > div {
+    padding: 2px 0;
+}
+#chat > div > .g > span {
+    color: #4f98ff;
+}
+#chat > div > .s > span {
+    color: #3992d6;
+}
+#chat > div > .m {
+    color: #de4dc6;
+}
+#chat img {
+    max-height: 380px;
+    margin: 2px 0;
+}
+#main {
+    text-align: center;
+    position: relative;
+    height: 1080px;
+    display: table-cell;
+    vertical-align: middle;
+    width: 1920px;
+}

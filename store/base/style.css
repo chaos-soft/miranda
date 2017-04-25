@@ -1,0 +1,29 @@
+a, body {
+    color: white;
+}
+body {
+    font: bold 16px/18px Arial, sans-serif;
+    overflow-x: hidden;
+}
+html {
+    background: rgba(0, 0, 0, 0.9);
+}
+img {
+    margin: 2px 0;
+}
+
+#main > div {
+    padding: 2px 0;
+}
+#main > div > span {
+    color: #3992d6;
+}
+#main > .m, #main > .m > span {
+    color: #de4dc6;
+}
+
+@media (min-width: 700px) {
+    body {
+        font-size: 14px;
+    }
+}

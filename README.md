@@ -1,2 +1,1 @@
-# miranda_app
-Чат для GoodGame, Peka2tv и Twitch.
+# Miranda — чат для GoodGame, Peka2tv и Twitch

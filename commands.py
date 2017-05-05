@@ -3,7 +3,7 @@ import threading
 from datetime import datetime
 import time
 
-from chat import print_error
+from common import print_error
 
 
 class Commands(threading.Thread):
@@ -11,26 +11,31 @@ class Commands(threading.Thread):
 
     def __init__(self, config, messages, stop_event):
         super().__init__()
+
         self.config = config
         self.messages = messages
         self.stop_event = stop_event
-        self.text = list(map(str.strip, self.config['base']['text'].split(',')))
+        self.text = config['base'].getlist('text')
+        self.exclude_ids = config['base'].getlist('exclude_ids')
+        self.include_ids = config['commands'].getlist('include_ids')
 
-        commands = filter(lambda v: v.startswith('-'), self.config['commands'])
-        self.re_commands_keys = re.compile(r'^({})(.*)$'.format('|'.join(commands)))
+        self.commands = {}
+        for k in config['commands']:
+            if k.startswith('-'):
+                self.commands[k] = config['commands'].getlist(k)
+
+        self.re_commands_keys = re.compile(r'^({})(.*)$'. \
+            format('|'.join(self.commands.keys())))
 
         self.start()
 
     def run(self):
         print_error(self.messages, '{} loaded.'.format(type(self).__name__))
-
         offset = 0
-        exclude_ids = list(map(str.strip, self.config['commands']['exclude_ids'].split(',')))
-        root = list(map(str.strip, self.config['base']['root'].split(',')))
 
         while not self.stop_event.is_set():
             for message in self.messages[offset:]:
-                if message['id'] in exclude_ids:
+                if message['id'] in self.exclude_ids:
                     continue
 
                 m = self.re_commands_keys.search(message['text'])
@@ -39,7 +44,7 @@ class Commands(threading.Thread):
 
                 # Параметры команды.
                 # p = ['имя метода', 'владелец', 'время с подписки']
-                p = list(map(str.strip, self.config['commands'][m.group(1)].split(',')))
+                p = self.commands[m.group(1)]
 
                 is_command = False
                 try:
@@ -51,8 +56,13 @@ class Commands(threading.Thread):
                     is_command = True
 
                 # Может ли пользователь использовать команду.
-                if message['name'].lower() in root or \
-                   (p[1] == '*' or (p[1] == 'follows' and is_command)):
+                if message.get('is_muted'):
+                    pass
+                elif message.get('is_root') or \
+                     message['id'] in self.include_ids or \
+                     (p[1] == 'follows' and message.get('is_friendly')) or \
+                     p[1] == '*' or \
+                     (p[1] == 'follows' and is_command):
                     getattr(self, p[0])(message=message, command_text=m.group(2).strip())
 
             offset += len(self.messages) - offset
@@ -63,7 +73,7 @@ class Commands(threading.Thread):
 
     def add_tts(self, command_text, **kwargs):
         if command_text:
-            self.add_js('tts.push("{}")'.format(command_text[:150]))
+            self.add_js('tts.push("{}")'.format(command_text[:300]))
 
     def add_image(self, message, command_text):
         if command_text:

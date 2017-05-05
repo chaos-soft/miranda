@@ -11,6 +11,8 @@ import server
 import commands
 import goodgame
 import peka2tv
+import payments
+import common
 
 
 def load_smiles():
@@ -30,23 +32,24 @@ def load_smiles():
 
 def main():
     if 'twitch' in config:
-        for channel in map(str.strip, config['twitch']['channels'].split(',')):
+        for channel in config['twitch'].getlist('channels'):
             threads.append(twitch.Twitch(channel, config, messages,
                                          smiles['twitch'], stop_event))
 
     if 'goodgame' in config:
-        for channel in map(str.strip, config['goodgame']['channels'].split(',')):
+        for channel in config['goodgame'].getlist('channels'):
             threads.append(goodgame.GoodGame(channel, config, messages,
                                              smiles['goodgame'], stop_event))
 
     if 'peka2tv' in config:
-        for channel in map(str.strip, config['peka2tv']['channels'].split(',')):
+        for channel in config['peka2tv'].getlist('channels'):
             threads.append(peka2tv.Peka2tv(channel, config, messages,
                                            smiles['peka2tv'], stop_event))
 
     if 'commands' in config:
         threads.append(commands.Commands(config, messages, stop_event))
 
+    threads.append(payments.Payments(config, messages, stop_event))
     threads.append(server.Server(config, messages, base_dir))
 
 
@@ -76,13 +79,13 @@ if __name__ == '__main__':
     base_dir = os.path.dirname(os.path.abspath(__file__))
     smiles = {}
     config_path = os.path.join(base_dir, 'config.ini')
-    config = configparser.ConfigParser()
+    config = configparser.ConfigParser(converters={'list': common.str_to_list})
 
     signal.signal(signal.SIGINT, shutdown)
 
     while not stop_event.is_set():
         config.read(config_path)
-        messages = []
+        messages = common.UserList(config)
 
         if not smiles:
             smiles = load_smiles()

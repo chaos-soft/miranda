@@ -1,18 +1,18 @@
 import json
 import re
-import time
 
 from websocket import WebSocketApp
 import requests
 
-from chat import Chat, print_error
+from chat import Chat
+from common import print_error
 
 
 class Peka2tv(Chat):
 
     def run(self):
-        self.re_code = re.compile(r'^\d+')
-        self.text = list(map(str.strip, self.config['base']['text'].split(',')))
+        self.re_code = re.compile(r'^(\d+).*$')
+        self.text = self.config['base'].getlist('text')
         self.socket_start()
 
     def socket_start(self):
@@ -28,7 +28,7 @@ class Peka2tv(Chat):
         self.join()
 
     def on_message(self, w, data):
-        code = self.re_code.search(data).group()
+        code = self.re_code.search(data).group(1)
         if code == '40':
             self.join_chat(w)
         elif code == '42':
@@ -46,13 +46,14 @@ class Peka2tv(Chat):
     def add_message(self, data):
         name = data['from']['name']
 
-        text = self.filter(name, data['text'])
-        if not text:
-            return
         if data['to']:
-            text = '{}, {}'.format(data['to']['name'], text)
+            text = '{}, {}'.format(data['to']['name'], data['text'])
+        else:
+            text = data['text']
 
         message = dict(id='s', name=name, text=text)
+
+        self.add_role(message)
 
         if self.smiles:
             m = self.re_smile.findall(text)
@@ -75,7 +76,7 @@ class Peka2tv(Chat):
         else:
             t = self.text[1].format(name)
 
-        self.messages.append(dict(id='p', name=self.config['base']['app_name'], text=t))
+        self.messages.append(dict(id='p', text=t))
 
     def on_pong(self, w, _):
         w.send('2')
@@ -100,4 +101,4 @@ class Peka2tv(Chat):
                 return smiles
             except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
                 print_error(messages, '{}: {}'.format(cls.__name__, e))
-                time.sleep(60)
+                return

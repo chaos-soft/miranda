@@ -1,30 +1,27 @@
 import re
-from datetime import datetime
 import html
 import threading
 import time
 
-
-def print_error(messages, e):
-    t = '[{}] {}'.format(str(datetime.now()).split(' ')[1][:8], e)
-    print(t)
-    messages.append(dict(id='m', text=t))
+from common import print_error
 
 
 class Chat(threading.Thread):
 
     def __init__(self, channel, config, messages, smiles, stop_event):
         super().__init__()
+
         self.channel = channel
         self.config = config
         self.messages = messages
         self.smiles = smiles
         self.stop_event = stop_event
+        self.re_smile = re.compile(r'^.*:(\w+):.*$')
+        self.root = config['base'].getlist('root')
+        self.friendly = config['base'].getlist('friendly')
+        self.muted = config['base'].getlist('muted')
 
-        self.re_html = re.compile(r'<.*?>')
-        self.re_smile = re.compile(r':(\w+):')
-
-        if hasattr(self, 'load_follows') and int(config['base']['follows_limit']):
+        if hasattr(self, 'load_follows') and config['base'].getint('follows_limit'):
             self.follows = self.load_follows()
         else:
             self.follows = {}
@@ -34,22 +31,19 @@ class Chat(threading.Thread):
     def print_error(self, e):
         print_error(self.messages, e)
 
-    def filter(self, name, text):
+    def add_role(self, message):
         """
-        Проверяет пользователя на бан. Удаляет HTML и делает экранирование,
-        если не root.
+        Дюбавляет роль пользователя к сообщению (is_root, is_muted или is_friendly).
         """
-        name = name.lower()
-        text = self.re_html.sub('', text)
-        root = list(map(str.strip, self.config['base']['root'].split(',')))
+        name = message['name'].lower()
 
-        if name not in root:
-            banned = list(map(str.strip, self.config['base']['banned'].split(',')))
-            if name in banned:
-                return
-            text = html.escape(text, quote=False)
-
-        return text
+        if name in self.root:
+            message['is_root'] = True
+        else:
+            if name in self.muted:
+                message['is_muted'] = True
+            elif name in self.friendly:
+                message['is_friendly'] = True
 
     def on_error(self, s, e):
         self.print_error('{}: {}'.format(type(self).__name__, e))

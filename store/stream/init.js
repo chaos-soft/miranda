@@ -1,3 +1,4 @@
+var app_name;
 icons = {'t': 't.ico', 'g': 'g.png', 's': 's.ico'};
 
 message_pattern = `<img src="/store/icons/{{ icon }}" alt="">
@@ -21,7 +22,7 @@ core = function(data) {
                 }
             }
 
-            if (data[i]['id'] in icons) {
+            if (data[i]['id'] in icons && ! ('is_muted' in data[i])) {
                 var div = document.createElement('div');
                 div.classList.add(data[i]['id']);
                 div.innerHTML = message_pattern.
@@ -41,7 +42,7 @@ core = function(data) {
             } else if (data[i]['id'] === 'p' || data[i]['id'] === 'e') {
                 var div = document.createElement('div');
                 div.classList.add('m');
-                div.innerHTML = data[i]['name'] + ': ' + data[i]['text'];
+                div.innerHTML = app_name + ': ' + data[i]['text'];
             }
 
             if (div) {

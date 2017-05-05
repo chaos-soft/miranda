@@ -3,7 +3,7 @@ import threading
 
 import cherrypy
 
-from chat import print_error
+from common import print_error
 
 
 class Server(threading.Thread):
@@ -34,7 +34,7 @@ class Server(threading.Thread):
     @cherrypy.expose
     def index(self, theme='base'):
         with open(os.path.join(self.base_dir, 'templates/{}.html'.format(theme))) as f:
-            names = map(str.strip, self.config['base']['names'].split(','))
+            names = self.config['base'].getlist('names')
             return f.read(). \
                 replace('{{ names }}', ', '.join('"{}"'.format(n) for n in names)). \
                 replace('{{ app_name }}', self.config['base']['app_name']). \

@@ -5,7 +5,8 @@ from datetime import datetime
 
 import requests
 
-from chat import Chat, print_error
+from chat import Chat
+from common import print_error
 
 
 class Twitch(Chat):
@@ -56,7 +57,7 @@ class Twitch(Chat):
     def add_notify(self, data):
         # :twitchnotify!twitchnotify@twitchnotify.tmi.twitch.tv PRIVMSG #qwerty :xxx just subscribed!
         t = self.config['twitch']['text'].format(data.split(' ', 4)[3][1:])
-        self.messages.append(dict(id='e', name=self.config['base']['app_name'], text=t))
+        self.messages.append(dict(id='e', text=t))
 
     def add_message(self, data):
         parts = data.split(' ', 4)
@@ -66,12 +67,10 @@ class Twitch(Chat):
         if not name:
             name = parts[1].split('!', 1)[0][1:]
 
-        text = self.filter(name, parts[4][1:])
-        if not text:
-            return
+        message = dict(id='t', name=name, text=parts[4][1:],
+                       color=data[1].split('=')[1])
 
-        color = data[1].split('=')[1]
-        message = dict(id='t', name=name, text=text, color=color)
+        self.add_role(message)
 
         if self.smiles:
             try:
@@ -128,7 +127,7 @@ class Twitch(Chat):
                     follows[follow['user']['display_name'].lower()] = t
 
                 if '_cursor' in data and \
-                   len(follows) < int(self.config['base']['follows_limit']):
+                   len(follows) < self.config['base'].getint('follows_limit'):
                     params['cursor'] = data['_cursor']
                 else:
                     self.print_error('{} follows loaded (@{}, {}).'. \
@@ -136,7 +135,7 @@ class Twitch(Chat):
                     return follows
             except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
                 self.print_error('{} (@{}): {}'.format(type(self).__name__, self.channel, e))
-                time.sleep(60)
+                return
 
     @classmethod
     def load_smiles(cls, config, messages):
@@ -160,4 +159,4 @@ class Twitch(Chat):
                 return smiles
             except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
                 print_error(messages, '{}: {}'.format(cls.__name__, e))
-                time.sleep(60)
+                return

@@ -96,9 +96,12 @@ $(function() {
 
     setInterval(function() {
         $.get('/comments', {'offset': main.offset}, core).fail(function() {
+            if (main.offset) {
+                m = '<div class="m">' + app_name + ': потеряно соединение.</div>';
+                main.append(m);
+            }
+
             main.offset = 0;
-            m = '<div class="m">' + app_name + ': потеряно соединение.</div>';
-            main.append(m);
         });
     }, 5 * 1000);
 });

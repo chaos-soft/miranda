@@ -11,7 +11,6 @@ import server
 import commands
 import goodgame
 import peka2tv
-import payments
 import common
 import youtube
 
@@ -55,8 +54,6 @@ def main():
 
     if 'commands' in config:
         threads.append(commands.Commands(config, messages, stop_event))
-
-    threads.append(payments.Payments(config, messages, stop_event))
 
 
 def shutdown(*args):

@@ -1,5 +1,5 @@
 var app_name;
-icons = {'t': 't.ico', 'g': 'g.png', 's': 's.ico'};
+icons = {'t': 't.ico', 'g': 'g.png', 's': 's.ico', 'y': 'y.png'};
 
 message_pattern = `<img src="/store/icons/{{ icon }}" alt="">
 <span>{{ name }}</span>: {{ text }}`;

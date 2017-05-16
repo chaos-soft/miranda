@@ -8,7 +8,7 @@ from common import print_error
 
 class Chat(threading.Thread):
 
-    def __init__(self, channel, config, messages, smiles, stop_event):
+    def __init__(self, channel, config, messages, smiles, stop_event, *args):
         super().__init__()
 
         self.channel = channel
@@ -45,11 +45,15 @@ class Chat(threading.Thread):
             elif name in self.friendly:
                 message['is_friendly'] = True
 
-    def on_error(self, s, e):
-        self.print_error('{}: {}'.format(type(self).__name__, e))
+    def on_error(self, *args):
+        self.print_error('{}: {}'.format(type(self).__name__, args[-1]))
 
-    def on_close(self, _):
-        self.print_error('{} stopped (@{}).'.format(type(self).__name__, self.channel))
+    def on_close(self, *args):
+        if self.channel:
+            t = '{} stopped (@{}).'.format(type(self).__name__, self.channel)
+        else:
+            t = '{} stopped.'.format(type(self).__name__)
+        self.print_error(t)
 
         if not self.stop_event.is_set():
             time.sleep(5)

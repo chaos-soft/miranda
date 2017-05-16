@@ -13,6 +13,7 @@ class Server(threading.Thread):
         self.config = config
         self.messages = messages
         self.base_dir = base_dir
+        self.names = config['base'].getlist('names')
         self.start()
 
     def run(self):
@@ -26,7 +27,8 @@ class Server(threading.Thread):
                                 'log.access_file': '',
                                 'log.error_file': '',
                                 'server.socket_host': '0.0.0.0',
-                                'server.socket_port': 55555})
+                                'server.socket_port': 55555,
+                                'engine.autoreload.on': False})
 
         print_error(self.messages, '{} loaded.'.format(type(self).__name__))
         cherrypy.quickstart(self, '/', config)
@@ -34,9 +36,8 @@ class Server(threading.Thread):
     @cherrypy.expose
     def index(self, theme='base'):
         with open(os.path.join(self.base_dir, 'templates/{}.html'.format(theme))) as f:
-            names = self.config['base'].getlist('names')
             return f.read(). \
-                replace('{{ names }}', ', '.join('"{}"'.format(n) for n in names)). \
+                replace('{{ names }}', ', '.join('"{}"'.format(n) for n in self.names)). \
                 replace('{{ app_name }}', self.config['base']['app_name']). \
                 replace('{{ tts_api_key }}', self.config['base'].get('tts_api_key', ''))
 
@@ -47,5 +48,7 @@ class Server(threading.Thread):
 
     def stop(self):
         cherrypy.engine.exit()
-        self.join()
+        # TODO: Почему в данной реализации нужен timeout?
+        self.join(0)
+
         print_error(self.messages, '{} stopped.'.format(type(self).__name__))

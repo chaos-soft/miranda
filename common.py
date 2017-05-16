@@ -3,6 +3,9 @@ import collections
 import html
 
 
+AUTHORIZATION_ANCHOR = '<a href="{}" target="_blank">Авторизация в {}</a>.'
+
+
 def print_error(messages, e):
     t = '[{}] {}'.format(str(datetime.now()).split(' ')[1][:8], e)
     print(t)

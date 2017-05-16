@@ -21,6 +21,9 @@ img {
 #main > .m, #main > .m > span {
     color: #de4dc6;
 }
+#main > div > img:first-child {
+    width: 16px;
+}
 
 @media (min-width: 700px) {
     body {

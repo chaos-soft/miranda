@@ -13,6 +13,7 @@ import goodgame
 import peka2tv
 import payments
 import common
+import youtube
 
 
 def load_smiles():
@@ -31,6 +32,8 @@ def load_smiles():
 
 
 def main():
+    threads.append(server.Server(config, messages, base_dir))
+
     if 'twitch' in config:
         for channel in config['twitch'].getlist('channels'):
             threads.append(twitch.Twitch(channel, config, messages,
@@ -46,11 +49,14 @@ def main():
             threads.append(peka2tv.Peka2tv(channel, config, messages,
                                            smiles['peka2tv'], stop_event))
 
+    if config['base'].getboolean('is_youtube'):
+        threads.append(youtube.YouTube(None, config, messages,
+                                       None, stop_event, base_dir))
+
     if 'commands' in config:
         threads.append(commands.Commands(config, messages, stop_event))
 
     threads.append(payments.Payments(config, messages, stop_event))
-    threads.append(server.Server(config, messages, base_dir))
 
 
 def shutdown(*args):
@@ -58,13 +64,14 @@ def shutdown(*args):
     [thread.stop() for thread in threads]
 
 
-def config_watcher():
+def restart_watcher():
     start_timestamp = os.path.getmtime(config_path)
 
     while not stop_event.is_set():
         time.sleep(5)
 
-        if start_timestamp != os.path.getmtime(config_path):
+        if start_timestamp != os.path.getmtime(config_path) or \
+           config['base'].getboolean('is_restart'):
             shutdown()
             stop_event.clear()
             # Время на обнуление offset в браузере.
@@ -75,7 +82,6 @@ def config_watcher():
 
 if __name__ == '__main__':
     stop_event = threading.Event()
-    threads = []
     base_dir = os.path.dirname(os.path.abspath(__file__))
     smiles = {}
     config_path = os.path.join(base_dir, 'config.ini')
@@ -84,13 +90,15 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, shutdown)
 
     while not stop_event.is_set():
+        threads = []
         config.read(config_path)
+        config['base']['is_restart'] = 'false'
         messages = common.UserList(config)
 
         if not smiles:
             smiles = load_smiles()
 
         main()
-        config_watcher()
+        restart_watcher()
 
     sys.exit()

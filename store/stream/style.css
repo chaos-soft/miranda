@@ -40,9 +40,15 @@ html {
 #chat > div > .m {
     color: #de4dc6;
 }
+#chat > div > .y {
+    color: #cc181e;
+}
 #chat img {
     max-height: 380px;
     margin: 2px 0;
+}
+#chat > div > div > img:first-child {
+    width: 16px;
 }
 #main {
     text-align: center;

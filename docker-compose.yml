@@ -1,0 +1,12 @@
+version: '3'
+services:
+  python:
+    image: python:3-alpine
+    ports:
+      - '55555:55555'
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true
+    command: sh /app/entrypoint.sh
+    restart: unless-stopped

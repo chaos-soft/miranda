@@ -71,41 +71,6 @@ class GoodGame(Chat):
             t = self.text[1].format(data['userName'])
         self.messages.append(dict(id='p', text=t))
 
-    def load_follows(self):
-        url = 'http://api2.goodgame.ru/channel/{}/subscribers?access_token={}'. \
-            format(self.channel, self.config['goodgame']['token'])
-        params = {}
-        follows = {}
-
-        while True:
-            try:
-                r = requests.get(url, params=params, timeout=10)
-                r.raise_for_status()
-                data = r.json()
-
-                for s in data['_embedded']['subscribers']:
-                    if not s['id']:
-                        continue
-                    follows[s['username'].lower()] = int(s['created_at'])
-
-                if data['page'] < data['page_count'] and \
-                   len(follows) < self.config['base'].getint('follows_limit'):
-                    params['page'] = data['page'] + 1
-                else:
-                    self.print_error('{} follows loaded (@{}, {}).'. \
-                        format(type(self).__name__, self.channel, len(follows)))
-                    return follows
-            except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
-                self.print_error('{} (@{}): {}'.format(type(self).__name__, self.channel, e))
-
-                if str(e).startswith('401'):
-                    t = '<a href="http://api2.goodgame.ru/oauth/authorize?response_type=token&' \
-                        'client_id={}&scope=channel.subscribers&state=xxx" target="_blank">Token</a>.'. \
-                        format(self.config['goodgame']['client_id'])
-                    self.messages.append(dict(id='m', text=t))
-
-                return
-
     @classmethod
     def load_smiles(cls, messages):
         url = 'http://api2.goodgame.ru/smiles'

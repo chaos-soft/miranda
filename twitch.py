@@ -105,15 +105,12 @@ class Twitch(Chat):
 
     def get_channel_id(self):
         url = 'https://api.twitch.tv/kraken/users?login={}'.format(self.channel)
-
-        # Чтобы while останавливался 12 раз на пять секунд, а не один раз на
-        # минуту. Для быстрой остановки программы.
-        i = 13
+        one_minute_countdown = 0
 
         while not self.stop_event.is_set():
-            if i <= 12:
+            if one_minute_countdown > 0:
                 time.sleep(5)
-                i += 1
+                one_minute_countdown -= 1
                 continue
 
             try:
@@ -125,7 +122,7 @@ class Twitch(Chat):
             except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
                 self.print_error('{} (@{}): {}'.format(type(self).__name__, self.channel, e))
 
-            i = 1
+            one_minute_countdown = 12
 
     def load_follows(self):
         url = 'https://api.twitch.tv/kraken/channels/{}/follows?limit=100'. \

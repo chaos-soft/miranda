@@ -1,5 +1,6 @@
 import json
 import re
+import ssl
 
 from websocket import WebSocketApp
 import requests
@@ -21,7 +22,8 @@ class Peka2tv(Chat):
                               on_pong=self.on_pong,
                               on_error=self.on_error,
                               on_close=self.on_close)
-        self.w.run_forever(ping_interval=30, ping_timeout=29)
+        self.w.run_forever(ping_interval=30, ping_timeout=29,
+                           sslopt={'cert_reqs': ssl.CERT_NONE})
 
     def stop(self):
         self.w.close()

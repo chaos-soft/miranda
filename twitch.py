@@ -1,12 +1,14 @@
 import socket
 import time
-import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import requests
 
 from chat import Chat
 from common import print_error
+
+HEADERS = {'Accept': 'application/vnd.twitchtv.v5+json',
+           'Client-ID': 'g0qvsrztagks1lbg03kwnt67pg9x8a5'}
 
 
 class Twitch(Chat):
@@ -22,27 +24,35 @@ class Twitch(Chat):
             s.settimeout(1)
 
             # Именно в таком порядке.
-            s.send('PASS {}\r\n'.format(self.config['twitch']['pass']).encode('utf-8'))
-            s.send('NICK {}\r\n'.format(self.config['twitch']['nick']).encode('utf-8'))
+            s.send('PASS {}\r\n'.format('oauth:q2k4wco85y82dlebbynu7f3ovke1zh'). \
+                encode('utf-8'))
+            s.send('NICK {}\r\n'.format('miranda_app').encode('utf-8'))
 
             s.send('CAP REQ :twitch.tv/tags\r\n'.encode('utf-8'))
             s.send('JOIN #{}\r\n'.format(self.channel).encode('utf-8'))
 
             self.print_error('{} loaded (@{}).'.format(type(self).__name__, self.channel))
 
+            # Ориентировочное время отсылки PONG.
+            pong_time = datetime.now() + timedelta(minutes=5)
+
             while not self.stop_event.is_set():
                 try:
-                    for data in s.recv(524288).decode('utf-8').split('\r\n'):
+                    for data in s.recv(512 * 1024).decode('utf-8').split('\r\n'):
                         if not data:
                             continue
                         elif data.startswith(':twitchnotify!'):
                             self.add_notify(data)
                         elif data.startswith('PING'):
                             self.send_pong(data, s)
+                            pong_time = datetime.now()
                         elif 'PRIVMSG' in data:
                             self.add_message(data)
                 except socket.timeout:
                     pass
+
+                if pong_time + timedelta(minutes=5) < datetime.now():
+                    break
         except (socket.error, socket.gaierror) as e:
             self.on_error(s, e)
         finally:
@@ -75,8 +85,10 @@ class Twitch(Chat):
         if self.smiles:
             try:
                 smiles = list(filter(bool, data[3].split('=')[1].split('/')))
+
                 if smiles:
                     message['replacements'] = {}
+
                 for smile in smiles:
                     k = int(smile.split(':')[0])
                     if k in self.smiles:
@@ -93,31 +105,37 @@ class Twitch(Chat):
 
     def get_channel_id(self):
         url = 'https://api.twitch.tv/kraken/users?login={}'.format(self.channel)
-        headers = {'Accept': 'application/vnd.twitchtv.v5+json',
-                   'Client-ID': self.config['twitch']['client_id']}
 
-        while True:
+        # Чтобы while останавливался 12 раз на пять секунд, а не один раз на
+        # минуту. Для быстрой остановки программы.
+        i = 13
+
+        while not self.stop_event.is_set():
+            if i <= 12:
+                time.sleep(5)
+                i += 1
+                continue
+
             try:
-                r = requests.get(url, timeout=10, headers=headers)
+                r = requests.get(url, timeout=10, headers=HEADERS)
                 r.raise_for_status()
                 data = r.json()
 
                 return data['users'][0]['_id']
             except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
                 self.print_error('{} (@{}): {}'.format(type(self).__name__, self.channel, e))
-                time.sleep(60)
+
+            i = 1
 
     def load_follows(self):
         url = 'https://api.twitch.tv/kraken/channels/{}/follows?limit=100'. \
             format(self.get_channel_id())
-        headers = {'Accept': 'application/vnd.twitchtv.v5+json',
-                   'Client-ID': self.config['twitch']['client_id']}
         params = {}
         follows = {}
 
         while True:
             try:
-                r = requests.get(url, params=params, timeout=10, headers=headers)
+                r = requests.get(url, params=params, timeout=10, headers=HEADERS)
                 r.raise_for_status()
                 data = r.json()
 
@@ -141,12 +159,10 @@ class Twitch(Chat):
     def load_smiles(cls, config, messages):
         url = 'https://api.twitch.tv/kraken/chat/emoticon_images'
         smiles = {}
-        headers = {'Accept': 'application/vnd.twitchtv.v5+json',
-                   'Client-ID': config['twitch']['client_id']}
 
         while True:
             try:
-                r = requests.get(url, timeout=60, headers=headers)
+                r = requests.get(url, timeout=60, headers=HEADERS)
                 r.raise_for_status()
                 data = r.json()
 

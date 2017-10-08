@@ -47,7 +47,7 @@ class Twitch(Chat):
                             self.send_pong(data, s)
                             pong_time = datetime.now()
                         elif 'PRIVMSG' in data:
-                            self.add_message(data)
+                            self.add_message(self.parse_data(data))
                 except socket.timeout:
                     pass
 
@@ -69,35 +69,41 @@ class Twitch(Chat):
         t = self.config['twitch']['text'].format(data.split(' ', 4)[3][1:])
         self.messages.append(dict(id='e', text=t))
 
-    def add_message(self, data):
+    def parse_data(self, data):
         parts = data.split(' ', 4)
-        data = parts[0].split(';')
+        result = dict(text=parts[4][1:])
 
-        name = data[2].split('=')[1]
-        if not name:
-            name = parts[1].split('!', 1)[0][1:]
+        for part1 in parts[0].split(';'):
+            part2 = part1.split('=')
+            result[part2[0]] = part2[1]
 
-        message = dict(id='t', name=name, text=parts[4][1:],
-                       color=data[1].split('=')[1])
+        result['name'] = result['display-name']
+        if not result['name']:
+            # :chaos_soft!chaos_soft@chaos_soft.tmi.twitch.tv
+            result['name'] = parts[1].split('!', 1)[0][1:]
+
+        if result['emotes']:
+            # 33:0-7/66:9-15/46:17-22/11:24-25/16:27-39/50:41-51/58127:53-59
+            result['emotes'] = \
+                [int(smile.split(':')[0]) for smile in result['emotes'].split('/')]
+
+        return result
+
+    def add_message(self, data):
+        message = dict(id='t', name=data['name'], text=data['text'],
+                       color=data['color'])
 
         self.add_role(message)
 
-        if self.smiles:
-            try:
-                smiles = list(filter(bool, data[3].split('=')[1].split('/')))
+        if self.smiles and data['emotes']:
+            message['replacements'] = {}
 
-                if smiles:
-                    message['replacements'] = {}
+            for smile in data['emotes']:
+                if smile in self.smiles:
+                    url = '//static-cdn.jtvnw.net/emoticons/v1/{}/1.0'.format(smile)
+                    message['replacements'][self.smiles[smile]] = url
 
-                for smile in smiles:
-                    k = int(smile.split(':')[0])
-                    if k in self.smiles:
-                        url = '//static-cdn.jtvnw.net/emoticons/v1/{}/1.0'.format(k)
-                        message['replacements'][self.smiles[k]] = url
-            except IndexError:
-                pass
-
-        name_lower = name.lower()
+        name_lower = data['name'].lower()
         if self.follows and name_lower in self.follows:
             message['timestamp'] = self.follows[name_lower]
 

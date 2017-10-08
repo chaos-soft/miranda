@@ -93,3 +93,13 @@ class Commands(threading.Thread):
 
     def print_to_console(self, command_text, **kwargs):
         print(command_text) if command_text else None
+
+    def mute_user(self, command_text, **kwargs):
+        muted = self.config['base'].getlist('muted')
+        muted.append(command_text)
+        self.config['base']['muted'] = ', '.join(muted)
+
+    def unmute_user(self, command_text, **kwargs):
+        muted = self.config['base'].getlist('muted')
+        muted.remove(command_text)
+        self.config['base']['muted'] = ', '.join(muted)

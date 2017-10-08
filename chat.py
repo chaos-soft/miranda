@@ -19,7 +19,6 @@ class Chat(threading.Thread):
         self.re_smile = re.compile(r'^.*:(\w+):.*$')
         self.root = config['base'].getlist('root')
         self.friendly = config['base'].getlist('friendly')
-        self.muted = config['base'].getlist('muted')
 
         if hasattr(self, 'load_follows') and config['base'].getint('follows_limit'):
             self.follows = self.load_follows()
@@ -33,14 +32,14 @@ class Chat(threading.Thread):
 
     def add_role(self, message):
         """
-        Дюбавляет роль пользователя к сообщению (is_root, is_muted или is_friendly).
+        Добавляет роль пользователя к сообщению (is_root, is_muted или is_friendly).
         """
         name = message['name'].lower()
 
         if name in self.root:
             message['is_root'] = True
         else:
-            if name in self.muted:
+            if name in self.config['base'].getlist('muted'):
                 message['is_muted'] = True
             elif name in self.friendly:
                 message['is_friendly'] = True

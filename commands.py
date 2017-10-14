@@ -103,3 +103,6 @@ class Commands(threading.Thread):
         muted = self.config['base'].getlist('muted')
         muted.remove(command_text)
         self.config['base']['muted'] = ', '.join(muted)
+
+    def clean_messages(self, **kwargs):
+        self.messages[:] = []

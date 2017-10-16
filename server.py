@@ -38,7 +38,6 @@ class Server(threading.Thread):
         with open(os.path.join(self.base_dir, 'templates/{}.html'.format(theme))) as f:
             return f.read(). \
                 replace('{{ names }}', ', '.join('"{}"'.format(n) for n in self.names)). \
-                replace('{{ app_name }}', self.config['base']['app_name']). \
                 replace('{{ tts_api_key }}', self.config['base'].get('tts_api_key', ''))
 
     @cherrypy.expose

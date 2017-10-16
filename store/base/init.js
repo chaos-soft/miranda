@@ -1,4 +1,3 @@
-var app_name;
 icons = {'t': 't.ico', 'g': 'g.png', 's': 's.ico', 'y': 'y.png'};
 names = [];
 
@@ -62,7 +61,7 @@ core = function(data) {
         } else {
             var div = document.createElement('div');
             div.classList.add('m');
-            div.innerHTML = app_name + ': ' + data[i]['text'];
+            div.innerHTML = 'Miranda: ' + data[i]['text'];
         }
 
         if (div) {
@@ -97,7 +96,7 @@ $(function() {
     setInterval(function() {
         $.get('/comments', {'offset': main.offset}, core).fail(function() {
             if (main.offset) {
-                m = '<div class="m">' + app_name + ': потеряно соединение.</div>';
+                m = '<div class="m">Miranda: потеряно соединение.</div>';
                 main.append(m);
             }
 

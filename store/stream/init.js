@@ -1,4 +1,3 @@
-var app_name;
 icons = {'t': 't.ico', 'g': 'g.png', 's': 's.ico', 'y': 'y.png'};
 
 message_pattern = `<img src="/store/icons/{{ icon }}" alt="">
@@ -42,7 +41,7 @@ core = function(data) {
             } else if (data[i]['id'] === 'p' || data[i]['id'] === 'e') {
                 var div = document.createElement('div');
                 div.classList.add('m');
-                div.innerHTML = app_name + ': ' + data[i]['text'];
+                div.innerHTML = 'Miranda: ' + data[i]['text'];
             }
 
             if (div) {

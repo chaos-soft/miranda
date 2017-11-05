@@ -95,4 +95,4 @@ class GoodGame(Chat):
                     return smiles
             except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
                 print_error(messages, '{}: {}'.format(cls.__name__, e))
-                return
+                return None

@@ -24,7 +24,7 @@ class Commands(threading.Thread):
             if k.startswith('-'):
                 self.commands[k] = config['commands'].getlist(k)
 
-        self.re_commands_keys = re.compile(r'^({})(.*)$'. \
+        self.re_commands_keys = re.compile(r'({})(.*)'. \
             format('|'.join(self.commands.keys())))
 
         self.start()

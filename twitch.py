@@ -156,7 +156,7 @@ class Twitch(Chat):
                     return follows
             except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
                 self.print_error('{} (@{}): {}'.format(type(self).__name__, self.channel, e))
-                return
+                return None
 
     @classmethod
     def load_smiles(cls, config, messages):
@@ -178,4 +178,4 @@ class Twitch(Chat):
                 return smiles
             except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
                 print_error(messages, '{}: {}'.format(cls.__name__, e))
-                return
+                return None

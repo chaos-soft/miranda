@@ -12,7 +12,7 @@ from common import print_error
 class Peka2tv(Chat):
 
     def run(self):
-        self.re_code = re.compile(r'^(\d+).*$')
+        self.re_code = re.compile(r'^(\d+)')
         self.text = self.config['base'].getlist('text')
         self.socket_start()
 
@@ -103,4 +103,4 @@ class Peka2tv(Chat):
                 return smiles
             except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
                 print_error(messages, '{}: {}'.format(cls.__name__, e))
-                return
+                return None

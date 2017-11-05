@@ -16,7 +16,7 @@ class Chat(threading.Thread):
         self.messages = messages
         self.smiles = smiles
         self.stop_event = stop_event
-        self.re_smile = re.compile(r'^.*:(\w+):.*$')
+        self.re_smile = re.compile(r':(\w+):')
         self.root = config['base'].getlist('root')
         self.friendly = config['base'].getlist('friendly')
 

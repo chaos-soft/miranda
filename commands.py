@@ -85,7 +85,7 @@ class Commands(threading.Thread):
         self.messages.append(dict(id='js', command=command_text))
 
     def clean_chat(self, **kwargs):
-        self.add_js('chat.clean()')
+        self.add_js('main.clean()')
 
     def stop(self):
         self.join()

@@ -1,106 +1,108 @@
-icons = {'t': 't.ico', 'g': 'g.png', 's': 's.ico', 'y': 'y.png'};
-names = [];
+var icons = {t: 't.ico', g: 'g.png', s: 's.ico', y: 'y.png'}
+var names
+var main
 
-message_pattern = `<img src="/store/icons/{{ icon }}" alt="">
-<span>{{ name }}</span>: {{ text }}`;
+var messagePattern = `<img src="/store/icons/{{ icon }}" alt="">
+<span>{{ name }}</span>: {{ text }}`
 
-tts = [];
-tts.is_busy = false;
-tts.worker = function() {
-    if (tts.api_key && ! tts.is_busy) {
-        if (typeof tts.y === 'undefined') {
-            tts.y = new ya.speechkit.Tts({
-                apikey: tts.api_key,
-                speaker: 'omazh',
-                stopCallback: function() {
-                    tts.is_busy = false;
-                },
-            });
-        }
+var tts = []
+tts.isBusy = false
+tts.worker = function () {
+  if (! tts.isBusy) {
+    var message = tts.shift()
 
-        var message = tts.shift();
-        if (message) {
-            tts.is_busy = true;
-            tts.y.speak(message);
-        }
+    if (message) {
+      tts.isBusy = true
+      tts.y.speak(message)
     }
-};
+  }
+}
 
-core = function(data) {
-    if (! data.length) {
-        return;
-    }
+var core = function (data) {
+  if (! data.length) {
+    return
+  }
 
-    main.offset += data.length;
-    html_body.is_scroll = false;
+  main.offset += data.length
+  main.isScroll = false
 
-    for (var i = 0; i < data.length; i++) {
-        var div = undefined;
+  data.forEach(function (item) {
+    var div
 
-        if ('replacements' in data[i]) {
-            for (var k in data[i]['replacements']) {
-                var img = '<img src="' + data[i]['replacements'][k] + '" alt="">';
-                var r = RegExp(k, 'g');
-                data[i]['text'] = data[i]['text'].replace(r, img);
-            }
-        }
-
-        if (data[i]['id'] in icons) {
-            var div = document.createElement('div');
-            div.classList.add(data[i]['id']);
-            div.innerHTML = message_pattern.
-                replace('{{ icon }}', icons[data[i]['id']]).
-                replace('{{ name }}', data[i]['name']).
-                replace('{{ text }}', data[i]['text']);
-        } else if (data[i]['id'] === 'js') {
-            try {
-                eval(data[i]['command']);
-            } catch(e) {
-                console.log(e);
-            }
-        } else {
-            var div = document.createElement('div');
-            div.classList.add('m');
-            div.innerHTML = 'Miranda: ' + data[i]['text'];
-        }
-
-        if (div) {
-            var div_str = div.toString();
-
-            for (var i2 = 0; i2 < names.length; i2++) {
-                if (div_str.search(names[i2]) !== -1) {
-                    div.classList.add('m');
-                }
-            }
-
-            main[0].appendChild(div);
-            html_body.is_scroll = true;
-        }
+    if ('replacements' in item) {
+      for (var k in item['replacements']) {
+        var img = '<img src="' + item['replacements'][k] + '" alt="">'
+        var r = RegExp(k, 'g')
+        item['text'] = item['text'].replace(r, img)
+      }
     }
 
-    if (html_body.is_scroll) {
-        html_body.animate({scrollTop: main[0].scrollHeight}, 1000);
+    if (item['id'] in icons) {
+      div = document.createElement('div')
+      div.classList.add(item['id'])
+      div.innerHTML = messagePattern
+        .replace('{{ icon }}', icons[item['id']])
+        .replace('{{ name }}', item['name'])
+        .replace('{{ text }}', item['text'])
+    } else if (item['id'] === 'js') {
+      try {
+        eval(item['command'])
+      } catch (e) {
+        console.log(e)
+      }
+    } else {
+      div = document.createElement('div')
+      div.classList.add('m')
+      div.innerHTML = 'Miranda: ' + item['text']
     }
-};
 
-setInterval(function() {
-    tts.worker();
-}, 100);
+    if (div) {
+      var divStr = div.toString()
 
-$(function() {
-    html_body = $('html, body');
+      names.forEach(function (name) {
+        if (divStr.search(name) !== -1) {
+          div.classList.add('m')
+        }
+      })
 
-    main = $('#main');
-    main.offset = 0;
+      main.appendChild(div)
+      main.isScroll = true
+    }
+  })
 
-    setInterval(function() {
-        $.get('/comments', {'offset': main.offset}, core).fail(function() {
-            if (main.offset) {
-                m = '<div class="m">Miranda: потеряно соединение.</div>';
-                main.append(m);
-            }
+  if (main.isScroll) {
+    setTimeout(function () {
+      window.scrollTo(0, main.scrollHeight)
+    }, 200)
+  }
+}
 
-            main.offset = 0;
-        });
-    }, 5 * 1000);
-});
+var error = function () {
+  if (main.offset) {
+    var div = document.createElement('div')
+    div.classList.add('m')
+    div.innerHTML = 'Miranda: потеряно соединение.'
+
+    main.appendChild(div)
+  }
+
+  main.offset = 0
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  main = document.getElementById('main')
+  main.offset = 0
+
+  tts.y = new window.ya.speechkit.Tts({
+    speaker: 'omazh',
+    stopCallback: function () {
+        tts.isBusy = false
+    }
+  })
+
+  setInterval(function () {
+    get('/comments?offset=' + main.offset, core, error)
+  }, 5 * 1000)
+
+  setInterval(tts.worker, 100)
+})

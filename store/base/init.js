@@ -53,11 +53,11 @@ var core = function (data) {
     } else {
       div = document.createElement('div')
       div.classList.add('m')
-      div.innerHTML = 'Miranda: ' + item['text']
+      div.textContent = 'Miranda: ' + item['text']
     }
 
     if (div) {
-      var divStr = div.toString()
+      var divStr = div.textContent
 
       names.forEach(function (name) {
         if (divStr.search(name) !== -1) {
@@ -71,9 +71,7 @@ var core = function (data) {
   })
 
   if (main.isScroll) {
-    setTimeout(function () {
-      window.scrollTo(0, main.scrollHeight)
-    }, 200)
+    scroll()
   }
 }
 
@@ -81,12 +79,19 @@ var error = function () {
   if (main.offset) {
     var div = document.createElement('div')
     div.classList.add('m')
-    div.innerHTML = 'Miranda: потеряно соединение.'
+    div.textContent = 'Miranda: потеряно соединение.'
 
     main.appendChild(div)
+    scroll()
   }
 
   main.offset = 0
+}
+
+var scroll = function () {
+  setTimeout(function () {
+    window.scrollTo(0, main.scrollHeight)
+  }, 200)
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -101,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function () {
   })
 
   setInterval(function () {
-    get('/comments?offset=' + main.offset, core, error)
+    window.get('/comments?offset=' + main.offset, core, error)
   }, 5 * 1000)
 
   setInterval(tts.worker, 100)

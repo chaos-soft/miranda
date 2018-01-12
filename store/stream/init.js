@@ -95,6 +95,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   setInterval(function () {
-    get('/comments?offset=' + main.offset, core, error)
+    window.get('/comments?offset=' + main.offset, core, error)
   }, 5 * 1000)
 })

@@ -17,7 +17,7 @@ class Peka2tv(Chat):
         self.socket_start()
 
     def socket_start(self):
-        self.w = WebSocketApp('wss://chat.funstream.tv',
+        self.w = WebSocketApp('wss://chat.peka2.tv',
                               on_message=self.on_message,
                               on_pong=self.on_pong,
                               on_error=self.on_error,

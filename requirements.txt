@@ -1,4 +1,4 @@
-requests
-cherrypy
-websocket-client
-google-api-python-client
+CherryPy==13.1.0
+google-api-python-client==1.6.4
+requests==2.18.4
+websocket-client==0.46.0

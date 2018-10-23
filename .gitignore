@@ -1,3 +1,5 @@
 __pycache__/
-/payments.py
-/youtube_oauth2.json
+/app/payments.py
+/app/youtube_oauth2.json
+/venv/
+/LOG

@@ -5,8 +5,8 @@ services:
     ports:
       - '55555:55555'
     volumes:
-      - .:/app
+      - .:/miranda
     stdin_open: true
     tty: true
-    command: sh /app/entrypoint.sh
+    command: sh /miranda/entrypoint.sh
     restart: unless-stopped

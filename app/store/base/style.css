@@ -1,0 +1,19 @@
+a, body {
+    color: white;
+    font: bold 16px/18px sans-serif;
+}
+#main > .m > span, #main > .m {
+    color: #de4dc6;
+}
+
+
+html {
+    background: rgba(8, 18, 48, .92);
+    /* Чтобы не появлялась полоса прокрутки при движении курсора. */
+    overflow-x: hidden;
+}
+
+
+#main > div > span {
+    color: #3992d6;
+}

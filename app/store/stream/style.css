@@ -1,0 +1,36 @@
+#main, #main > div {
+    transition: opacity 2s;
+}
+
+
+body {
+    color: white;
+    font: bold 18px/26px sans-serif;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+html {
+    background: transparent;
+    /*
+    background: url('http://57st.net/store/blog/2017/10/16/72850_screenshots_2013-06-26_00010.jpg') no-repeat fixed center;
+    */
+    overflow: hidden;
+}
+
+
+.o0 {
+    opacity: 0;
+}
+
+
+#main > .g > span {
+    color: #4f98ff;
+}
+#main > .s > span {
+    color: #3992d6;
+}
+#main > .m {
+    color: #de4dc6;
+}
+#main > .y {
+    color: #cc181e;
+}

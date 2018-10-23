@@ -1,4 +1,5 @@
-CherryPy==13.1.0
-google-api-python-client==1.6.4
-requests==2.18.4
-websocket-client==0.46.0
+CherryPy==18.0.0
+google-api-python-client==1.7.4
+oauth2client==4.1.2
+requests==2.19.1
+websocket-client==0.48.0

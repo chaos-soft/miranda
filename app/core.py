@@ -3,13 +3,7 @@ import time
 import sys
 import signal
 
-import twitch
 import server
-import goodgame
-import peka2tv
-import commands
-import youtube
-import payments
 from config import CONFIG
 
 
@@ -27,6 +21,7 @@ def main():
         server_thread = server.Server()
         threads = []
         if 'twitch' in CONFIG:
+            import twitch
             channels = CONFIG['twitch'].getlist('channels')
             for channel in channels:
                 threads.append(twitch.Twitch(channel))
@@ -36,17 +31,20 @@ def main():
                     if CONFIG['twitch'].getboolean('is_hosts'):
                         threads.append(twitch.TwitchHosts(channel))
         if 'goodgame' in CONFIG:
+            import goodgame
             for channel in CONFIG['goodgame'].getlist('channels'):
                 threads.append(goodgame.GoodGame(channel))
         if 'peka2tv' in CONFIG:
+            import peka2tv
             for channel in CONFIG['peka2tv'].getlist('channels'):
                 threads.append(peka2tv.Peka2tv(channel))
         if CONFIG['base'].getboolean('is_youtube'):
+            import youtube
             threads.append(youtube.YouTube())
             threads.append(youtube.YouTubeAuthorization())
         if 'commands' in CONFIG:
+            import commands
             threads.append(commands.Commands())
-        threads.append(payments.Payments())
         while True:
             time.sleep(5)
     except ShutdownError:

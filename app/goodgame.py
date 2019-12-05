@@ -20,7 +20,7 @@ class GoodGame(Chat):
 
     def start_socket(self):
         self.on_start()
-        self.w = WebSocketApp('ws://chat.goodgame.ru:8081/chat/websocket',
+        self.w = WebSocketApp('wss://chat.goodgame.ru/chat/websocket',
                               on_message=self.on_message,
                               on_open=self.on_open,
                               on_error=self.on_error,

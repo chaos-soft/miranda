@@ -2,18 +2,26 @@ a, body {
     color: white;
     font: bold 16px/18px sans-serif;
 }
-#main > .m > span, #main > .m {
-    color: #de4dc6;
-}
 
 
 html {
-    background: rgba(8, 18, 48, .92);
+    background: rgba(0, 0, 0, 0.88);
     /* Чтобы не появлялась полоса прокрутки при движении курсора. */
     overflow-x: hidden;
 }
 
 
-#main > div > span {
+#controls {
+    position: fixed;
+    top: 8px;
+    right: 10px;
+}
+#controls > .material-icons {
+    vertical-align: top;
+    cursor: pointer;
+    font-size: 48px;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+}
+#main > div > :nth-child(2) {
     color: #3992d6;
 }

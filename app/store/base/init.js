@@ -1,7 +1,8 @@
 'use strict'
-/* global ya, Chat, Message, get */
+/* global ya, Chat, get, Vue */
 var names
 var tts
+var app
 
 class Tts extends Array {
   constructor () {
@@ -28,54 +29,36 @@ class Tts extends Array {
 }
 
 class BaseChat extends Chat {
-  constructor (element) {
-    super(element)
-    this.includeIds = ['p', 'e', 'm', 'js']
-  }
-
-  preLoop () {
-    this.isScroll = false
-  }
-
   postLoop () {
-    if (this.isScroll) {
+    if (app.isScroll) {
       this.scroll()
     }
   }
 
-  preCreateDiv (message) {
-    if (message['id'] === 'tts') {
-      tts.push(message['text'])
-    } else {
-      new Message(message).replace()
-    }
-  }
-
-  postCreateDiv (div, message) {
-    var divStr = div.textContent
+  processMessage (message) {
     names.forEach(function (name) {
-      if (divStr.search(name) !== -1) {
-        div.classList.add('m')
+      if (message.text.search(name) !== -1) {
+        if (message.classes.indexOf('m') === -1) {
+          message.classes.push('m')
+        }
       }
     })
-    this.isScroll = true
+    if (message.id === 'tts') {
+      tts.push(message.text)
+    }
   }
 
   error () {
     if (this.offset) {
-      var div = document.createElement('div')
-      div.classList.add('m')
-      div.textContent = 'Miranda: потеряно соединение.'
-      this.element.appendChild(div)
+      app.messages.push({ id: 'm', text: 'потеряно соединение.', classes: ['m'] })
       this.scroll()
     }
     this.offset = 0
   }
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-  var main = document.getElementById('main')
-  var baseChat = new BaseChat(main)
+var init = function () {
+  var baseChat = new BaseChat()
   tts = new Tts()
   setInterval(function () {
     get(
@@ -90,4 +73,26 @@ document.addEventListener('DOMContentLoaded', function () {
   setInterval(function () {
     tts.worker()
   }, 1000)
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  app = new Vue({
+    el: '#main',
+    data: { messages: [], isScroll: true },
+    mounted: function () {
+      this.$nextTick(init)
+    },
+    computed: {
+      getMessages: function () {
+        return this.messages.filter(function (message) {
+          return message.id !== 'tts'
+        })
+      }
+    },
+    methods: {
+      toggleScroll: function () {
+        this.isScroll = !this.isScroll
+      }
+    }
+  })
 })

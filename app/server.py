@@ -48,4 +48,4 @@ class Server(Base):
         offset = int(offset)
         if offset > total:
             offset = 0
-        return {'messages': MESSAGES[offset:], 'total': total}
+        return {'messages': MESSAGES.data[offset:], 'total': total}

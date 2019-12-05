@@ -20,7 +20,7 @@ class Peka2tv(Chat):
 
     def start_socket(self):
         self.on_start()
-        self.w = WebSocketApp('wss://chat.peka2.tv',
+        self.w = WebSocketApp('wss://chat.sc2tv.ru',
                               on_message=self.on_message,
                               on_pong=self.on_pong,
                               on_error=self.on_error,

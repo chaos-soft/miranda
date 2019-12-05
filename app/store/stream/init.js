@@ -1,23 +1,18 @@
 'use strict'
-/* global Chat, Message, get */
+/* global Chat, get, Vue */
+var app
 
 class StreamChat extends Chat {
-  constructor (element) {
-    super(element)
-    this.includeIds = ['p', 'e']
-  }
-
   preLoop () {
-    this.element.i = 0
+    app.i = 0
   }
 
   postLoop () {
     this.scroll(2 * 1000)
-    var thisCache = this
     setTimeout(function () {
-      for (var i = thisCache.element.children.length - 1; i >= 0; i--) {
-        var invisiblePart = thisCache.element.offsetHeight - window.innerHeight
-        var div = thisCache.element.children[i]
+      for (var i = app.$el.children.length - 1; i >= 0; i--) {
+        var invisiblePart = app.$el.offsetHeight - window.innerHeight
+        var div = app.$el.children[i]
         var divPart = div.offsetTop + div.offsetHeight
         if (divPart <= invisiblePart) {
           div.parentElement.removeChild(div)
@@ -28,51 +23,21 @@ class StreamChat extends Chat {
     }, 3 * 1000)
   }
 
-  preCreateDiv (message) {
-    if (message['id'] === 'js' && message['text'] === 'clean_chat') {
-      this.element.clean()
-    } else {
-      new Message(message).replace()
+  processMessage (message) {
+    if (message.id === 'js' && message.text === 'clean_chat') {
+      app.clean()
+    } else if (message.id in this.icons) {
+      app.show()
     }
-  }
-
-  postCreateDiv (div, message) {
-    if ('color' in message) {
-      div.children[1].style.color = message['color']
-    }
-    this.element.show()
   }
 
   emptyData () {
-    this.element.hide()
+    app.hide()
   }
 }
 
-var getMain = function () {
-  var main = document.getElementById('main')
-  main.i = 0
-
-  main.clean = function () {
-    this.innerHTML = ''
-    this.classList.add('o0')
-  }
-
-  main.hide = function () {
-    this.i += 1
-    if (this.i === 12) {
-      this.classList.add('o0')
-    }
-  }
-
-  main.show = function () {
-    this.classList.remove('o0')
-  }
-
-  return main
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-  var streamChat = new StreamChat(getMain())
+var init = function () {
+  var streamChat = new StreamChat()
   setInterval(function () {
     get(
       `/messages?offset=${streamChat.offset}`,
@@ -80,4 +45,36 @@ document.addEventListener('DOMContentLoaded', function () {
         streamChat.core(data)
       })
   }, 5 * 1000)
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  app = new Vue({
+    el: '#main',
+    data: { messages: [], i: 0 },
+    mounted: function () {
+      this.$nextTick(init)
+    },
+    methods: {
+      clean: function () {
+        this.messages = []
+        this.$el.classList.add('o0')
+      },
+      hide: function () {
+        this.i += 1
+        if (this.i === 12) {
+          this.$el.classList.add('o0')
+        }
+      },
+      show: function () {
+        this.$el.classList.remove('o0')
+      }
+    },
+    computed: {
+      getMessages: function () {
+        return this.messages.filter(function (message) {
+          return ['tts', 'm', 'js'].indexOf(message.id) === -1
+        })
+      }
+    }
+  })
 })

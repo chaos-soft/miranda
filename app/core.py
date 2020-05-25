@@ -1,59 +1,51 @@
 #!/usr/bin/env python3
-import time
 import sys
 import signal
+import asyncio
 
 import server
 from config import CONFIG
+import aiohttp
 
-
-class ShutdownError(Exception):
-    pass
+TASKS = []
 
 
 def shutdown(signum, frame):
-    raise ShutdownError
+    for task in TASKS:
+        task.cancel()
+    sys.exit(0)
 
 
-def main():
-    signal.signal(signal.SIGINT, shutdown)
-    try:
-        server_thread = server.Server()
-        threads = []
+async def main():
+    async with aiohttp.ClientSession() as session:
+        TASKS.append(asyncio.create_task(server.Server().main()))
         if 'twitch' in CONFIG:
             import twitch
             channels = CONFIG['twitch'].getlist('channels')
             for channel in channels:
-                threads.append(twitch.Twitch(channel))
+                TASKS.append(asyncio.create_task(twitch.Twitch(channel).main(session)))
                 if channels.index(channel) == 0:
                     if CONFIG['twitch'].getboolean('is_follows'):
-                        threads.append(twitch.TwitchFollows(channel))
+                        TASKS.append(asyncio.create_task(twitch.TwitchFollows(channel).main()))
                     if CONFIG['twitch'].getboolean('is_hosts'):
-                        threads.append(twitch.TwitchHosts(channel))
+                        TASKS.append(asyncio.create_task(twitch.TwitchHosts(channel).main()))
+                    if CONFIG['twitch'].getboolean('is_follows') or \
+                       CONFIG['twitch'].getboolean('is_hosts'):
+                        TASKS.append(asyncio.create_task(twitch.get_channel_id(channel)))
         if 'goodgame' in CONFIG:
             import goodgame
             for channel in CONFIG['goodgame'].getlist('channels'):
-                threads.append(goodgame.GoodGame(channel))
+                TASKS.append(asyncio.create_task(goodgame.GoodGame(channel).main(session)))
         if 'peka2tv' in CONFIG:
             import peka2tv
             for channel in CONFIG['peka2tv'].getlist('channels'):
-                threads.append(peka2tv.Peka2tv(channel))
-        if CONFIG['base'].getboolean('is_youtube'):
-            import youtube
-            threads.append(youtube.YouTube())
-            threads.append(youtube.YouTubeAuthorization())
+                TASKS.append(asyncio.create_task(peka2tv.Peka2tv(channel).main(session)))
         if 'commands' in CONFIG:
             import commands
-            threads.append(commands.Commands())
-        while True:
-            time.sleep(5)
-    except ShutdownError:
-        for thread in threads:
-            thread.is_stop = True
-            thread.stop()
-        server_thread.stop()
-        sys.exit(0)
+            TASKS.append(asyncio.create_task(commands.Commands().main()))
+        await asyncio.gather(*TASKS)
 
 
 if __name__ == '__main__':
-    main()
+    signal.signal(signal.SIGINT, shutdown)
+    asyncio.run(main())

@@ -1,12 +1,14 @@
 version: '3'
 services:
   python:
-    image: python:3-alpine
+    build: .
+    image: miranda:20200430
     ports:
       - '55555:55555'
     volumes:
       - .:/miranda
     stdin_open: true
     tty: true
-    command: sh /miranda/entrypoint.sh
+    command: ['python', '/miranda/app/core.py']
     restart: unless-stopped
+    stop_signal: SIGINT

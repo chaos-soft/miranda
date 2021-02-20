@@ -1,27 +1,33 @@
-a, body {
-    color: white;
-    font: bold 16px/18px sans-serif;
+a,
+body {
+  color: white;
+  font: bold 16px/1 sans-serif;
 }
-
 
 html {
-    background: rgba(0, 0, 0, 0.88);
-    /* Чтобы не появлялась полоса прокрутки при движении курсора. */
-    overflow-x: hidden;
+  background: rgba(0, 0, 0, .88);
+  /* Чтобы не появлялась полоса прокрутки при движении курсора. */
+  overflow-x: hidden;
 }
 
+.controls {
+  position: fixed;
+  right: 10px;
+  top: 10px;
+}
 
-#controls {
-    position: fixed;
-    top: 8px;
-    right: 10px;
+.controls > i {
+  background: rgba(255, 255, 255, .3);
+  border-radius: 4px;
+  cursor: pointer;
+  display: none;
+  font-size: 48px;
+  height: 48px;
+  text-shadow: 0 0 3px rgba(0, 0, 0, .8);
+  vertical-align: top;
+  width: 48px;
 }
-#controls > .material-icons {
-    vertical-align: top;
-    cursor: pointer;
-    font-size: 48px;
-    text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
-}
-#main > div > :nth-child(2) {
-    color: #3992d6;
+
+.main > div > :nth-child(2) {
+  color: #3992d6;
 }

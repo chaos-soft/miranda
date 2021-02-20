@@ -2,7 +2,7 @@ version: '3'
 services:
   python:
     build: .
-    image: miranda:20200430
+    image: miranda:20210220
     ports:
       - '55555:55555'
     volumes:

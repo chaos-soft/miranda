@@ -1,25 +1,64 @@
 'use strict'
-/* global ya, Chat, get, Vue */
-var names
-var tts
-var app
+/* global Chat, get, names, ya */
+
+class BaseChat extends Chat {
+  constructor () {
+    super()
+    this.scrollElement = document.getElementById('scroll')
+    this.scrollElement.addEventListener('click', () => this.startScroll())
+  }
+
+  error () {
+    if (this.offset) {
+      const message = { id: 'm', text: 'потеряно соединение.', classes: ['m'] }
+      this.processMessage(message)
+      this.render({ messages: message })
+    }
+    this.offset = 0
+  }
+
+  processMessage (message) {
+    super.processMessage(message)
+    if (message.id in this.icons) {
+      names.forEach((name) => {
+        if (message.text.search(name) !== -1) {
+          if (message.classes.indexOf('m') === -1) {
+            message.classes.push('m')
+          }
+        }
+      })
+    }
+    if (message.id === 'tts') {
+      tts.push(message.text)
+    }
+  }
+
+  startScroll () {
+    this.isScroll = true
+    this.scrollElement.style.removeProperty('display')
+  }
+
+  stopScroll () {
+    this.isScroll = false
+    this.scrollElement.style.display = 'block'
+  }
+}
 
 class Tts extends Array {
   constructor () {
     super()
     this.isBusy = false
-    var thisCache = this
     this.api = new ya.speechkit.Tts({
       speaker: 'omazh',
-      stopCallback: function () {
-        thisCache.isBusy = false
+      stopCallback: () => {
+        this.isBusy = false
       }
     })
   }
 
   worker () {
     if (!this.isBusy) {
-      var message = this.shift()
+      const message = this.shift()
       if (message) {
         this.isBusy = true
         this.api.speak(message)
@@ -28,71 +67,27 @@ class Tts extends Array {
   }
 }
 
-class BaseChat extends Chat {
-  postLoop () {
-    if (app.isScroll) {
-      this.scroll()
-    }
-  }
+let chat
+let tts
 
-  processMessage (message) {
-    names.forEach(function (name) {
-      if (message.text.search(name) !== -1) {
-        if (message.classes.indexOf('m') === -1) {
-          message.classes.push('m')
-        }
-      }
-    })
-    if (message.id === 'tts') {
-      tts.push(message.text)
-    }
-  }
-
-  error () {
-    if (this.offset) {
-      app.messages.push({ id: 'm', text: 'потеряно соединение.', classes: ['m'] })
-      this.scroll()
-    }
-    this.offset = 0
-  }
-}
-
-var init = function () {
-  var baseChat = new BaseChat()
-  tts = new Tts()
-  setInterval(function () {
+function init () {
+  chat = new BaseChat()
+  setInterval(() => {
     get(
-      `/messages?offset=${baseChat.offset}`,
-      function (data) {
-        baseChat.core(data)
-      },
-      function () {
-        baseChat.error()
-      })
+      `/messages?offset=${chat.offset}`,
+      (data) => chat.core(data),
+      () => chat.error())
   }, 5 * 1000)
-  setInterval(function () {
-    tts.worker()
-  }, 1000)
+  setInterval(() => chat.scroll(), 1000)
+  tts = new Tts()
+  setInterval(() => tts.worker(), 1000)
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-  app = new Vue({
-    el: '#main',
-    data: { messages: [], isScroll: true },
-    mounted: function () {
-      this.$nextTick(init)
-    },
-    computed: {
-      getMessages: function () {
-        return this.messages.filter(function (message) {
-          return message.id !== 'tts'
-        })
-      }
-    },
-    methods: {
-      toggleScroll: function () {
-        this.isScroll = !this.isScroll
-      }
-    }
-  })
+document.addEventListener('DOMContentLoaded', () => init())
+document.addEventListener('keyup', (e) => {
+  if (['PageUp', 'Home', 'ArrowUp'].indexOf(e.key) !== -1) {
+    chat.stopScroll()
+  }
 })
+document.addEventListener('touchend', () => chat.stopScroll())
+document.addEventListener('wheel', () => chat.stopScroll())

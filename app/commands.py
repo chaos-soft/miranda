@@ -94,32 +94,33 @@ class Commands(Base):
         await self.add_test_messages_p()
 
     async def add_test_messages_t(self):
-        message = dict(id='t', name='chaos_soft', color='#ff69b4')
-        message['text'] = '-i https://gals.kindgirls.com/d3/ariel_39844/m6/ariel_39844_1.jpg'
-        MESSAGES.append(message.copy())
-        message['text'] = '-t от root'
-        MESSAGES.append(message.copy())
-        message['text'] = '<3 <3 <3 <3 xxx <3 <3 <3 <3'
-        message['emotes'] = '9:0-1,3-4,6-7,9-10,16-17,19-20,22-23,25-26'
-        MESSAGES.append(message.copy())
-        message['text'] = 'LUL ResidentSleeper SeriousSloth'
-        message['emotes'] = '425618:0-2/245:4-18/81249:20-31'
-        MESSAGES.append(message.copy())
+        import twitch
+        t = twitch.Twitch('slE')
+        m = dict(id='t', name='chaos_soft', color='#ff69b4', text='-t от root')
+        MESSAGES.append(m.copy())
+        m['text'] = '-i https://gals.kindgirls.com/d009/ariel_39844/ariel_39844_1.jpg'
+        MESSAGES.append(m.copy())
+        m['text'] = '<] >( ;) #/ <3 <3 <3 xxx <3 <3 <3'
+        m['emotes'] = '555555562:3-4/555555589:6-7/555555584:12-13,15-16,18-19,25-26,28-29,31-32'
+        await t.parse_emotes(m)
+        MESSAGES.append(m.copy())
+        m['text'] = 'LUL ResidentSleeper SeriousSloth'
+        m['emotes'] = '425618:0-2/245:4-18/81249:20-31'
+        await t.parse_emotes(m)
+        MESSAGES.append(m.copy())
 
     async def add_test_messages_g(self):
-        message = dict(id='g', name='chaos-soft')
-        message['text'] = '-i https://gals.kindgirls.com/d3/ariel_09328/m6/ariel_09328_2.jpg'
+        message = dict(id='g', name='chaos-soft', text='-t от friendly')
         MESSAGES.append(message.copy())
-        message['text'] = '-t от friendly'
+        message['text'] = '-i https://gals.kindgirls.com/d009/ariel_09328/ariel_09328_2.jpg'
         MESSAGES.append(message.copy())
         message['text'] = ':peka: :gta: :bearbush:'
         MESSAGES.append(message.copy())
 
     async def add_test_messages_s(self):
-        message = dict(id='s', name='xxx')
-        message['text'] = '-i https://gals.kindgirls.com/d3/ariel_09328/m6/ariel_09328_8.jpg'
+        message = dict(id='s', name='xxx', text='-t от xxx')
         MESSAGES.append(message.copy())
-        message['text'] = '-t от xxx'
+        message['text'] = '-i https://gals.kindgirls.com/d009/ariel_09328/ariel_09328_8.jpg'
         MESSAGES.append(message.copy())
         message['text'] = '@chaos обращение'
         MESSAGES.append(message.copy())
@@ -128,7 +129,7 @@ class Commands(Base):
 
     async def add_test_messages_y(self):
         message = dict(id='y', name='xxx_timestamp')
-        message['text'] = '-i https://gals.kindgirls.com/d3/ariel_09328/m6/ariel_09328_8.jpg'
+        message['text'] = '-i https://gals.kindgirls.com/d009/ariel_09328/ariel_09328_8.jpg'
         message['timestamp'] = datetime.now().timestamp() - 28 * 24 * 60 * 60
         MESSAGES.append(message.copy())
 
@@ -136,3 +137,6 @@ class Commands(Base):
         message = dict(id='p', name='xxx')
         message['text'] = '-t xxx задонатил и не сказал ничего.'
         MESSAGES.append(message.copy())
+
+    async def add_secret(self, **kwargs):
+        MESSAGES.append(dict(id='m', text='xxx'))

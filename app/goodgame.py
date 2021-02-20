@@ -1,5 +1,4 @@
 import json
-import html
 
 import aiohttp
 
@@ -48,9 +47,7 @@ class GoodGame(Chat):
         MESSAGES.append(dict(id='e', text=text))
 
     async def add_message(self, data):
-        message = dict(id='g', name=data['user_name'],
-                       text=html.unescape(data['text']),
-                       premiums=data['premiums'])
+        message = dict(id='g', name=data['user_name'], text=data['text'])
         MESSAGES.append(message)
 
     async def add_payment(self, data):

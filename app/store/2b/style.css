@@ -1,0 +1,7 @@
+img {
+  max-height: 300px;
+}
+
+.main > div {
+  transition: margin 500ms, opacity 500ms;
+}

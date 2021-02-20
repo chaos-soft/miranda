@@ -27,7 +27,7 @@ class Server(Base):
         theme = request.query.get('theme') or 'base'
         with open(os.path.join(BASE_DIR, f'templates/{theme}.html')) as f:
             text = f.read(). \
-                replace('{{ names }}', ', '.join(f'"{n}"' for n in self.names)). \
+                replace('{{ names }}', "', '".join(self.names)). \
                 replace('{{ tts_api_key }}', CONFIG['base'].get('tts_api_key', ''))
         return web.Response(text=text, content_type='text/html')
 

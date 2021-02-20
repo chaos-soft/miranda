@@ -6,7 +6,6 @@ import asyncio
 import aiohttp
 
 EXCLUDE_IDS = ['m']
-MESSAGES = None
 
 
 class UserList(collections.UserList):
@@ -23,17 +22,6 @@ class UserList(collections.UserList):
         super().append(message)
 
 
-async def print_error(e):
-    text = f'[{str(datetime.now()).split(".")[0]}] {e}'
-    print(text)
-    MESSAGES.append(dict(id='m', text=text))
-
-
-def str_to_list(str_):
-    """Парсит строку с запятыми в массив."""
-    return list(map(str.strip, str_.split(',')))
-
-
 async def make_request(url, retries=1, method='GET', sleep=5, **kwargs):
     while retries:
         try:
@@ -46,6 +34,17 @@ async def make_request(url, retries=1, method='GET', sleep=5, **kwargs):
             if retries:
                 await asyncio.sleep(sleep)
     return None
+
+
+async def print_error(e):
+    text = f'[{str(datetime.now()).split(".")[0]}] {e}'
+    print(text)
+    MESSAGES.append(dict(id='m', text=text))
+
+
+def str_to_list(str_):
+    """Парсит строку с запятыми в массив."""
+    return list(map(str.strip, str_.split(',')))
 
 
 MESSAGES = UserList()

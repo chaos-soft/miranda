@@ -2,24 +2,25 @@
 <html lang="ru">
   <link rel="stylesheet" href="/store/base.css">
   <link rel="stylesheet" href="/store/stream/style.css">
+  <link rel="stylesheet" href="/store/2b/style.css">
   <meta charset="utf-8">
   <meta name="description" content="">
   <meta name="keywords" content="">
   <script src="https://goodgame.ru/js/minified/global.js"></script>
   <script src="https://unpkg.com/mustache@latest"></script>
   <script src="/store/common.js"></script>
-  <script src="/store/stream/init.js"></script>
+  <script src="/store/2b/init.js"></script>
   <title>Miranda</title>
   <main class="main">
     <template id="messages">
       {{#messages}}
         {{#isSystem}}
-          <div class="{{getClasses}}">
+          <div class="{{getClasses}} o0">
             <span>Miranda</span>: {{{text}}}
           </div>
         {{/isSystem}}
         {{#isNormal}}
-          <div class="{{getClasses}}">
+          <div class="{{getClasses}} o0">
             <img src="/store/icons/{{icon}}">
             <span style="{{getColor}}">{{name}}</span>: <span>{{{text}}}</span>
           </div>

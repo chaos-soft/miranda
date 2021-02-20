@@ -1,12 +1,16 @@
-import socket
-from datetime import datetime, timedelta
+from datetime import datetime
+import asyncio
 
 from chat import Chat
-from common import MESSAGES, make_request, timeout_generator
+from common import MESSAGES, make_request
 from config import CONFIG
+import aiohttp
 
-HEADERS = {'Client-ID': 'g0qvsrztagks1lbg03kwnt67pg9x8a5'}
-TIMEOUT = 10
+HEADERS = {
+    'Client-ID': 'l0sytxv7tot9ynjakkx4o6ddlpn6qp',
+    'Authorization': 'Bearer upk86jkjcnqxem2ds5kz1ua4huavet',
+}
+TIMEOUT = aiohttp.ClientTimeout(total=10)
 
 FOLLOWS = {}
 HOSTS = []
@@ -19,60 +23,42 @@ TIMEOUT_NEXT = 5
 class Twitch(Chat):
     text = CONFIG['twitch'].getlist('text')[0]
 
-    def run(self):
-        self.start_socket()
+    async def main(self, session):
+        while True:
+            await self.on_start()
+            async with session.ws_connect('wss://irc-ws.chat.twitch.tv') as w:
+                await self.on_open(w)
+                async for message in w:
+                    if message.type == aiohttp.WSMsgType.TEXT:
+                        await self.on_message(message.data.rstrip(), w)
+                    elif message.type == aiohttp.WSMsgType.ERROR:
+                        break
+                await w.close()
+            await self.on_close()
 
-    def start_socket(self):
-        self.on_start()
-        s = self.get_socket()
-        # Ориентировочное время отсылки PONG.
-        pong_time = datetime.now() + timedelta(minutes=5)
-        # Массив для сборки сообщения, так как оно может приходить
-        # разбитым на несколько чатей. Ориентир последней — '\r\n'
-        # в конце строки.
-        data_list = []
-        while not self.is_stop:
-            try:
-                data_list.append(s.recv(512 * 1024))
-                if not data_list[-1].endswith(b'\r\n'):
-                    self.on_error('not endswith')
-                    continue
-                for data in b''.join(data_list).decode('utf-8').split('\r\n'):
-                    if 'USERNOTICE' in data:
-                        self.add_notify(self.parse_data(data))
-                    elif data.startswith('PING'):
-                        self.send_pong(data, s)
-                        pong_time = datetime.now()
-                    elif 'PRIVMSG' in data:
-                        self.add_message(self.parse_data(data))
-                data_list = []
-            except socket.timeout:
-                pass
-            if pong_time + timedelta(minutes=5) < datetime.now():
-                self.on_error('pong_time')
-                break
-        self.on_close(s)
-
-    def get_socket(self):
-        s = socket.socket()
-        s.connect(('irc.chat.twitch.tv', 6667))
-        # Non-blocking mode.
-        s.settimeout(1)
+    async def on_open(self, w):
         # PASS и NICK именно в таком порядке.
-        s.send('PASS {}\r\n'.format('oauth:q2k4wco85y82dlebbynu7f3ovke1zh').encode('utf-8'))
-        s.send('NICK {}\r\n'.format('miranda_app').encode('utf-8'))
-        s.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n'.encode('utf-8'))
-        s.send('JOIN #{}\r\n'.format(self.channel).encode('utf-8'))
-        return s
+        await w.send_str('PASS oauth:deaqfawg5sxy356nijwcms3r9qtkye\r\n')
+        await w.send_str('NICK miranda_app\r\n')
+        await w.send_str('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n')
+        await w.send_str(f'JOIN #{self.channel}\r\n')
 
-    def send_pong(self, data, s):
-        s.send('{}\r\n'.format(data.replace('PING', 'PONG')).encode('utf-8'))
+    async def on_message(self, data, w):
+        if 'USERNOTICE' in data:
+            await self.add_notify(await self.parse_data(data))
+        elif data.startswith('PING'):
+            await self.send_pong(data, w)
+        elif 'PRIVMSG' in data:
+            await self.add_message(await self.parse_data(data))
 
-    def add_notify(self, data):
+    async def send_pong(self, data, w):
+        await w.send_str(f'{data.replace("PING", "PONG")}\r\n')
+
+    async def add_notify(self, data):
         text = self.text.format(data['system-msg'].replace(r'\s', ' '))
         MESSAGES.append(dict(id='e', text=text))
 
-    def parse_data(self, data):
+    async def parse_data(self, data):
         parts = data.split(' ', 4)
         result = dict(text=(parts[4][1:] if len(parts) == 5 else None))
         # Сохраняет все ключи и значения.
@@ -85,24 +71,32 @@ class Twitch(Chat):
             result['name'] = parts[1].split('!', 1)[0][1:]
         return result
 
-    def add_message(self, data):
+    async def add_message(self, data):
         message = dict(id='t', name=data['name'],
-                       text=self.clean_text(data['text']),
+                       text=await self.clean_text(data['text']),
                        color=data['color'], emotes=data['emotes'])
         if data['user-id'] in FOLLOWS:
             message['timestamp'] = FOLLOWS[data['user-id']]
         MESSAGES.append(message)
 
-    def clean_text(self, text):
+    async def clean_text(self, text):
         """Очищает от /me."""
         return text[8:-1] if text.startswith('\x01') else text
 
 
-def get_channel_id(channel):
+channel_id = None
+
+
+async def get_channel_id(channel):
     # https://dev.twitch.tv/docs/api/reference/#get-users
-    url = 'https://api.twitch.tv/helix/users?login={}'.format(channel)
-    data = make_request(url, timeout=TIMEOUT, headers=HEADERS)
-    return data['data'][0]['id'] if data else None
+    url = f'https://api.twitch.tv/helix/users?login={channel}'
+    global channel_id
+    while True:
+        data = await make_request(url, timeout=TIMEOUT, headers=HEADERS)
+        if data:
+            channel_id = data['data'][0]['id']
+            break
+        await asyncio.sleep(TIMEOUT_ERROR)
 
 
 class TwitchFollows(Chat):
@@ -112,23 +106,18 @@ class TwitchFollows(Chat):
     url = 'https://api.twitch.tv/helix/users/follows'
     text = CONFIG['twitch'].getlist('text')[2]
 
-    def run(self):
-        timeout = timeout_generator(timeout=0)
-        while not self.is_stop:
-            if next(timeout):
-                continue
-            if not self.params['to_id']:
-                self.params['to_id'] = get_channel_id(self.channel)
-            t = self.load() if self.params['to_id'] else TIMEOUT_ERROR
-            timeout = timeout_generator(timeout=t)
+    async def main(self):
+        while True:
+            if channel_id:
+                self.params['to_id'] = channel_id
+                sleep = await self.load()
+            else:
+                sleep = TIMEOUT_NEXT
+            await asyncio.sleep(sleep)
 
-    def stop(self):
-        self.on_close()
-        super().stop()
-
-    def load(self):
-        data = make_request(self.url, params=self.params, timeout=TIMEOUT,
-                            headers=HEADERS)
+    async def load(self):
+        data = await make_request(self.url, params=self.params, timeout=TIMEOUT,
+                                  headers=HEADERS)
         if not data:
             return TIMEOUT_ERROR
         new_follows = []
@@ -142,7 +131,7 @@ class TwitchFollows(Chat):
             new_follows.append(follow['from_id'])
         if not self.is_first_run:
             if new_follows:
-                self.alert(new_follows)
+                await self.alert(new_follows)
             return TIMEOUT_SUCCESS
 
         if len(FOLLOWS) < CONFIG['twitch'].getint('follows_limit') and \
@@ -153,13 +142,13 @@ class TwitchFollows(Chat):
             self.params.pop('after', None)
             self.params['first'] = 10
             self.is_first_run = False
-            self.print_error('{} запущен ({}).', len(FOLLOWS))
+            await self.print_error(f'{{}} запущен ({len(FOLLOWS)}).')
             return TIMEOUT_SUCCESS
 
-    def alert(self, follows):
+    async def alert(self, follows):
         # https://dev.twitch.tv/docs/api/reference/#get-users
-        url = 'https://api.twitch.tv/helix/users?id={}'.format('&id='.join(follows))
-        data = make_request(url, 2, timeout=TIMEOUT, headers=HEADERS)
+        url = f'https://api.twitch.tv/helix/users?id={"&id=".join(follows)}'
+        data = await make_request(url, retries=2, timeout=TIMEOUT, headers=HEADERS)
         if not data:
             return None
         for follow in data['data']:
@@ -174,24 +163,17 @@ class TwitchHosts(Chat):
     url = 'https://tmi.twitch.tv/hosts?include_logins=1&target={}'
     text = CONFIG['twitch'].getlist('text')[1]
 
-    def run(self):
-        timeout = timeout_generator(timeout=0)
-        while not self.is_stop:
-            if next(timeout):
-                continue
-            if not self.channel_id:
-                self.channel_id = get_channel_id(self.channel)
-                if self.channel_id:
-                    self.url = self.url.format(self.channel_id)
-            t = self.load() if self.channel_id else TIMEOUT_ERROR
-            timeout = timeout_generator(timeout=t)
+    async def main(self):
+        while True:
+            if channel_id:
+                self.url = self.url.format(channel_id)
+                sleep = await self.load()
+            else:
+                sleep = TIMEOUT_NEXT
+            await asyncio.sleep(sleep)
 
-    def stop(self):
-        self.on_close()
-        super().stop()
-
-    def load(self):
-        data = make_request(self.url, timeout=TIMEOUT, headers=HEADERS)
+    async def load(self):
+        data = await make_request(self.url, timeout=TIMEOUT)
         if not data:
             return TIMEOUT_ERROR
         new_hosts = []
@@ -201,13 +183,13 @@ class TwitchHosts(Chat):
             HOSTS.append(host['host_id'])
             new_hosts.append(host['host_display_name'] or host['host_login'])
         if new_hosts and not self.is_first_run:
-            self.alert(new_hosts)
+            await self.alert(new_hosts)
         if self.is_first_run:
             self.is_first_run = False
-            self.print_error('{} запущен ({}).', len(HOSTS))
+            await self.print_error(f'{{}} запущен ({len(HOSTS)}).')
         return TIMEOUT_SUCCESS
 
-    def alert(self, hosts):
+    async def alert(self, hosts):
         for host in hosts:
             text = self.text.format(host)
             MESSAGES.append(dict(id='e', text=text))

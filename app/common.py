@@ -1,9 +1,9 @@
 from datetime import datetime
 import collections
 import html
-import time
+import asyncio
 
-import requests
+import aiohttp
 
 EXCLUDE_IDS = ['m']
 MESSAGES = None
@@ -23,8 +23,8 @@ class UserList(collections.UserList):
         super().append(message)
 
 
-def print_error(e):
-    text = '[{}] {}'.format(str(datetime.now()).split('.')[0], e)
+async def print_error(e):
+    text = f'[{str(datetime.now()).split(".")[0]}] {e}'
     print(text)
     MESSAGES.append(dict(id='m', text=text))
 
@@ -34,27 +34,18 @@ def str_to_list(str_):
     return list(map(str.strip, str_.split(',')))
 
 
-def make_request(url, retries=1, method=requests.get, sleep=5, **kwargs):
+async def make_request(url, retries=1, method='GET', sleep=5, **kwargs):
     while retries:
         try:
-            r = method(url, **kwargs)
-            r.raise_for_status()
-            data = r.json()
-            return data
-        except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
-            print_error(e)
+            async with aiohttp.request(method, url, **kwargs) as r:
+                assert r.status == 200
+                return await r.json()
+        except AssertionError:
+            await print_error(f'AssertionError: {url} ({r.status})')
             retries -= 1
             if retries:
-                time.sleep(sleep)
+                await asyncio.sleep(sleep)
     return None
-
-
-def timeout_generator(timeout=60, sleep=1):
-    while timeout:
-        timeout -= sleep
-        time.sleep(sleep)
-        yield True
-    yield False
 
 
 MESSAGES = UserList()

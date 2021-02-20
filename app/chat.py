@@ -1,48 +1,34 @@
-import threading
-import time
+import asyncio
 
 from common import print_error
 
 
-class Base(threading.Thread):
-    is_stop = False
+class Base():
 
-    def __init__(self):
-        super().__init__()
-        self.start()
+    async def main(self):
+        raise NotImplementedError
 
-    def stop(self):
-        self.join()
+    async def print_error(self, pattern):
+        await print_error(pattern.format(type(self).__name__))
 
-    def print_error(self, pattern, *args):
-        name = type(self).__name__
-        if hasattr(self, 'channel') and self.channel:
-            name = '{} (@{})'.format(name, self.channel)
-        print_error(pattern.format(name, *args))
+    async def on_close(self):
+        await self.print_error('{} остановлен.')
 
-    def on_error(self, *args):
-        self.print_error('{}: {}', args[-1])
-
-    def on_close(self):
-        self.print_error('{} остановлен.')
-
-    def on_start(self):
-        self.print_error('{} запущен.')
+    async def on_start(self):
+        await self.print_error('{} запущен.')
 
 
 class Chat(Base):
 
-    def __init__(self, channel=None):
+    def __init__(self, channel):
         self.channel = channel
-        super().__init__()
 
-    def start_socket(self):
+    async def main(self, session):
         raise NotImplementedError
 
-    def on_close(self, socket=None):
-        super().on_close()
-        if socket:
-            socket.close()
-        if not self.is_stop:
-            time.sleep(5)
-            self.start_socket()
+    async def print_error(self, pattern):
+        await print_error(pattern.format(f'{type(self).__name__} (@{self.channel})'))
+
+    async def on_close(self):
+        await super().on_close()
+        await asyncio.sleep(5)

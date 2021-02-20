@@ -62,6 +62,7 @@ img {
 }
 #main > .m > span,
 #main > .p > span,
+#main > .e > span,
 #main > .js > span {
     color: #de4dc6;
 }

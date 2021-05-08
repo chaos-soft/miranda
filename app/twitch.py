@@ -2,13 +2,13 @@ from datetime import datetime
 import asyncio
 
 from chat import Chat
-from common import MESSAGES, make_request
+from common import make_request, MESSAGES, TIMEOUT_STATS
 from config import CONFIG
 import aiohttp
 
 HEADERS = {
     'Client-ID': 'g0qvsrztagks1lbg03kwnt67pg9x8a5',
-    'Authorization': 'Bearer u2e509dsabm2e68bd8kjh2qu66bvdl',
+    'Authorization': 'Bearer zvdlec2bqyyp6t9n6sm15d40kc2gpf',
 }
 TIMEOUT = aiohttp.ClientTimeout(total=10)
 
@@ -91,7 +91,7 @@ class Twitch(Chat):
             id, indexes = emote.split(':')
             indexes = indexes.split(',', 1)[0].split('-')
             message['replacements'] += [[
-                f'{{{i}}}',
+                f'image{i}',
                 int(id),
                 message['text'][int(indexes[0]):int(indexes[1]) + 1],
             ]]
@@ -211,3 +211,22 @@ class TwitchHosts(Chat):
         for host in hosts:
             text = self.text.format(host)
             MESSAGES.append(dict(id='e', text=text))
+
+
+class TwitchStats(Chat):
+    url = 'https://api.twitch.tv/helix/streams?user_login={}&first=1'
+
+    async def main(self):
+        await self.on_start()
+        self.url = self.url.format(self.channel)
+        while True:
+            await self.load()
+            await asyncio.sleep(TIMEOUT_STATS)
+
+    async def load(self):
+        data = await make_request(self.url, timeout=TIMEOUT, headers=HEADERS)
+        if data:
+            await self.alert(data['data'][0]['viewer_count'] if data['data'] else '-')
+
+    async def alert(self, v):
+        MESSAGES.append(dict(id='js', text='refresh_stats', sid='t', stext=v))

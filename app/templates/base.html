@@ -14,6 +14,12 @@
   <script src="/store/common.js"></script>
   <script src="/store/base/init.js"></script>
   <title>Miranda</title>
+  <div class="stats">
+    <div>
+      <div><img src="/store/icons/g.png"> <span id="g">-</span></div>
+      <div><img src="/store/icons/t.ico"> <span id="t">-</span></div>
+    </div>
+  </div>
   <main class="main">
     <template id="messages">
       {{#messages}}
@@ -24,7 +30,7 @@
         {{/isSystem}}
         {{#isNormal}}
           <div class="{{getClasses}}">
-            <img src="/store/icons/{{icon}}">
+            <img src="/store/icons/{{icon}}" loading="lazy">
             <span>{{name}}</span>: <span>{{{text}}}</span>
           </div>
         {{/isNormal}}

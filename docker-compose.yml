@@ -2,13 +2,13 @@ version: '3'
 services:
   python:
     build: .
+    command: ['python', '/miranda/app/core.py']
     image: miranda:20210220
     ports:
       - '55555:55555'
+    restart: unless-stopped
+    stdin_open: true
+    stop_signal: SIGINT
+    tty: true
     volumes:
       - .:/miranda
-    stdin_open: true
-    tty: true
-    command: ['python', '/miranda/app/core.py']
-    restart: unless-stopped
-    stop_signal: SIGINT

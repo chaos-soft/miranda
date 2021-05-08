@@ -9,7 +9,7 @@ class Chat {
     this.main = document.getElementsByClassName('main')[0]
     this.messages = document.getElementById('messages').innerHTML
     this.offset = 0
-    this.systemIds = ['p', 'e', 'm', 'js']
+    this.systemIds = ['e', 'm', 'p']
   }
 
   clean () {
@@ -49,9 +49,10 @@ class Chat {
       message.icon = this.icons[message.id]
       new Message(message).replace()
     }
-    message.isSystem = () => {
-      if (this.systemIds.indexOf(message.id) !== -1) {
-        return true
+    message.getClasses = () => message.classes.join(' ')
+    message.getColor = () => {
+      if ('color' in message) {
+        return `color: ${message.color}`
       }
     }
     message.isNormal = () => {
@@ -59,7 +60,11 @@ class Chat {
         return true
       }
     }
-    message.getClasses = () => message.classes.join(' ')
+    message.isSystem = () => {
+      if (this.systemIds.indexOf(message.id) !== -1) {
+        return true
+      }
+    }
   }
 
   render (data) {
@@ -146,12 +151,12 @@ class Message {
     this.replacements.forEach((replacement) => {
       if (replacement.length === 2) {
         img = `<img src="${replacement[1]}">`
-        search = replacement[0]
+        search = new RegExp(replacement[0], 'gi')
       } else {
         img = `<img src="${replacement}">`
         search = replacement
       }
-      this.message.text = this.message.text.replaceAll(search, img)
+      this.message.text = this.message.text.replace(search, img)
     })
   }
 

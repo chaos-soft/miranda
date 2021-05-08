@@ -1,24 +1,33 @@
 a,
 body {
   color: white;
-  font: bold 16px/1 sans-serif;
+  font: 18px/1 sans-serif;
+}
+
+.controls,
+.stats {
+  position: fixed;
+  top: 10px;
+}
+
+.controls > i,
+.stats > div {
+  border-radius: 4px;
 }
 
 html {
-  background: rgba(0, 0, 0, .88);
+  background: rgba(0, 0, 0, .9);
   /* Чтобы не появлялась полоса прокрутки при движении курсора. */
   overflow-x: hidden;
+  padding: 0 10px;
 }
 
 .controls {
-  position: fixed;
   right: 10px;
-  top: 10px;
 }
 
 .controls > i {
   background: rgba(255, 255, 255, .3);
-  border-radius: 4px;
   cursor: pointer;
   display: none;
   font-size: 48px;
@@ -30,4 +39,30 @@ html {
 
 .main > div > :nth-child(2) {
   color: #3992d6;
+}
+
+.stats {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.stats > div {
+  background: rgba(0, 0, 0, .8);
+  display: flex;
+  padding: 5px;
+}
+
+.stats > div > div {
+  margin: 5px;
+}
+
+.stats > div > div > img {
+  margin: 0;
+}
+
+@media (min-width: 960px) {
+  a,
+  body {
+    font-size: 14px;
+  }
 }

@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
-import sys
-import signal
+from typing import Any, List
 import asyncio
+import signal
+import sys
 
-import server
 from config import CONFIG
 import aiohttp
+import server
 
-TASKS = []
-
-
-def shutdown(signum, frame):
-    for task in TASKS:
-        task.cancel()
-    sys.exit(0)
+TASKS: List[asyncio.Task[None]] = []
 
 
-async def main():
+async def main() -> None:
     async with aiohttp.ClientSession() as session:
         TASKS.append(asyncio.create_task(server.Server().main()))
         if 'twitch' in CONFIG:
@@ -32,6 +27,8 @@ async def main():
                     if CONFIG['twitch'].getboolean('is_follows') or \
                        CONFIG['twitch'].getboolean('is_hosts'):
                         TASKS.append(asyncio.create_task(twitch.get_channel_id(channel)))
+                    if CONFIG['base'].getboolean('is_stats'):
+                        TASKS.append(asyncio.create_task(twitch.TwitchStats(channel).main()))
         if 'goodgame' in CONFIG:
             import goodgame
             for channel in CONFIG['goodgame'].getlist('channels'):
@@ -44,6 +41,12 @@ async def main():
             import commands
             TASKS.append(asyncio.create_task(commands.Commands().main()))
         await asyncio.gather(*TASKS)
+
+
+def shutdown(*args: Any) -> None:
+    for task in TASKS:
+        task.cancel()
+    sys.exit(0)
 
 
 if __name__ == '__main__':

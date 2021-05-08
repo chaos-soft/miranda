@@ -60,8 +60,8 @@ html {
 
 img {
   margin: 2px 0;
-  max-width: 100%;
   max-height: calc(100vh - 8px);
+  max-width: 100%;
   vertical-align: middle;
 }
 

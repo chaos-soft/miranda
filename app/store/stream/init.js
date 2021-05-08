@@ -49,11 +49,6 @@ class StreamChat extends Chat {
     if (message.id in this.icons) {
       this.show()
     }
-    message.getColor = () => {
-      if ('color' in message) {
-        return `color: ${message.color}`
-      }
-    }
   }
 
   show () {

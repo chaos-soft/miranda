@@ -4,7 +4,7 @@
 class TwoBChat extends Chat {
   constructor () {
     super()
-    this.offset = -5
+    this.offset = -10
     this.systemIds = ['p', 'e']
   }
 
@@ -22,15 +22,6 @@ class TwoBChat extends Chat {
         div.classList.remove('o0')
       }
     }, 100)
-  }
-
-  processMessage (message) {
-    super.processMessage(message)
-    message.getColor = () => {
-      if ('color' in message) {
-        return `color: ${message.color}`
-      }
-    }
   }
 
   removeMessages () {

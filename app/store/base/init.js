@@ -19,7 +19,9 @@ class BaseChat extends Chat {
 
   processMessage (message) {
     super.processMessage(message)
-    if (message.id in this.icons) {
+    if (message.id === 'js' && message.text === 'refresh_stats') {
+      document.getElementById(message.sid).innerHTML = message.stext
+    } else if (message.id in this.icons) {
       names.forEach((name) => {
         if (message.text.search(name) !== -1) {
           if (message.classes.indexOf('m') === -1) {
@@ -84,10 +86,15 @@ function init () {
 }
 
 document.addEventListener('DOMContentLoaded', () => init())
-document.addEventListener('keyup', (e) => {
+document.addEventListener('keydown', (e) => {
   if (['PageUp', 'Home', 'ArrowUp'].indexOf(e.key) !== -1) {
     chat.stopScroll()
   }
 })
-document.addEventListener('touchend', () => chat.stopScroll())
+document.addEventListener('mousedown', (e) => {
+  if (e.clientX > document.body.clientWidth) {
+    chat.stopScroll()
+  }
+})
+document.addEventListener('touchstart', () => chat.stopScroll())
 document.addEventListener('wheel', () => chat.stopScroll())

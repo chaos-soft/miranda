@@ -95,7 +95,7 @@ class Commands(Base):
 
     async def add_test_messages_t(self):
         import twitch
-        t = twitch.Twitch('slE')
+        t = twitch.Twitch('sle')
         m = dict(id='t', name='chaos_soft', color='#ff69b4', text='-t от root')
         MESSAGES.append(m.copy())
         m['text'] = '-i https://gals.kindgirls.com/d009/ariel_39844/ariel_39844_1.jpg'

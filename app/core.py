@@ -21,12 +21,8 @@ async def main() -> None:
                 TASKS.append(asyncio.create_task(twitch.Twitch(channel).main(session)))
                 if channels.index(channel) == 0:
                     if CONFIG['twitch'].getboolean('is_follows'):
-                        TASKS.append(asyncio.create_task(twitch.TwitchFollows(channel).main()))
-                    if CONFIG['twitch'].getboolean('is_hosts'):
-                        TASKS.append(asyncio.create_task(twitch.TwitchHosts(channel).main()))
-                    if CONFIG['twitch'].getboolean('is_follows') or \
-                       CONFIG['twitch'].getboolean('is_hosts'):
                         TASKS.append(asyncio.create_task(twitch.get_channel_id(channel)))
+                        TASKS.append(asyncio.create_task(twitch.TwitchFollows(channel).main()))
                     if CONFIG['base'].getboolean('is_stats'):
                         TASKS.append(asyncio.create_task(twitch.TwitchStats(channel).main()))
         if 'goodgame' in CONFIG:

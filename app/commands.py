@@ -98,7 +98,7 @@ class Commands(Base):
         t = twitch.Twitch('sle')
         m = dict(id='t', name='chaos_soft', color='#ff69b4', text='-t от root')
         MESSAGES.append(m.copy())
-        m['text'] = '-i https://gals.kindgirls.com/d009/ariel_39844/ariel_39844_1.jpg'
+        m['text'] = '-i https://gals.kindgirls.com/d009/ariel_25530/ariel_25530_2.jpg'
         MESSAGES.append(m.copy())
         m['text'] = '<] >( ;) #/ <3 <3 <3 xxx <3 <3 <3'
         m['emotes'] = '555555562:3-4/555555589:6-7/555555584:12-13,15-16,18-19,25-26,28-29,31-32'

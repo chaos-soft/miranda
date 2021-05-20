@@ -47,10 +47,11 @@ table {
   border-spacing: 0;
 }
 
-.main > .e > span,
-.main > .m > span,
-.main > .p > span,
-.main > .js > span {
+.main > .e > b,
+.main > .js > b,
+.main > .m > b,
+.main > .name,
+.main > .p > b {
   color: #de4dc6;
 }
 

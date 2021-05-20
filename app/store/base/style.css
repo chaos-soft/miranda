@@ -1,68 +1,66 @@
 a,
 body {
-  color: white;
-  font: 18px/1 sans-serif;
-}
-
-.controls,
-.stats {
-  position: fixed;
-  top: 10px;
-}
-
-.controls > i,
-.stats > div {
-  border-radius: 4px;
+  color: black;
+  font: 18px/22px sans-serif;
 }
 
 html {
-  background: rgba(0, 0, 0, .9);
-  /* Чтобы не появлялась полоса прокрутки при движении курсора. */
-  overflow-x: hidden;
-  padding: 0 10px;
+  background: white;
 }
 
-.controls {
-  right: 10px;
+.main {
+  margin-top: 34px;
 }
 
-.controls > i {
-  background: rgba(255, 255, 255, .3);
-  cursor: pointer;
-  display: none;
-  font-size: 48px;
-  height: 48px;
-  text-shadow: 0 0 3px rgba(0, 0, 0, .8);
-  vertical-align: top;
-  width: 48px;
-}
-
-.main > div > :nth-child(2) {
+.main > div > b {
   color: #3992d6;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
 }
 
-.stats {
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.stats > div {
-  background: rgba(0, 0, 0, .8);
+.panel {
+  background-color: black;
+  color: white;
   display: flex;
-  padding: 5px;
+  font: 14px/24px sans-serif;
+  justify-content: center;
+  left: 0;
+  padding: 5px 0;
+  position: fixed;
+  top: 0;
+  width: 100%;
 }
 
-.stats > div > div {
-  margin: 5px;
+.panel > * {
+  padding: 0 5px;
 }
 
-.stats > div > div > img {
-  margin: 0;
+.panel > i:not(.active) {
+  color: rgba(255, 255, 255, .4);
+}
+
+.panel > i.active {
+  cursor: pointer;
+}
+
+.panel > div > img {
+  vertical-align: -4px;
+}
+
+.wrapper {
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
 @media (min-width: 960px) {
   a,
   body {
-    font-size: 14px;
+    font: 14px/18px sans-serif;
+  }
+
+  .wrapper {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 940px;
   }
 }

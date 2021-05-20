@@ -14,32 +14,28 @@
   <script src="/store/common.js"></script>
   <script src="/store/base/init.js"></script>
   <title>Miranda</title>
-  <div class="stats">
-    <div>
-      <div><img src="/store/icons/g.png"> <span id="g">-</span></div>
-      <div><img src="/store/icons/t.ico"> <span id="t">-</span></div>
-    </div>
+  <div class="panel">
+    <div><img src="/store/icons/g.png"> <span id="g">-</span></div>
+    <div><img src="/store/icons/t.ico"> <span id="t">-</span></div>
+    <i id="scroll" class="material-icons">arrow_downward</i>
   </div>
-  <main class="main">
+  <main class="main wrapper">
     <template id="messages">
       {{#messages}}
         {{#isSystem}}
           <div class="{{getClasses}}">
-            <span>Miranda</span>: {{{text}}}
+            <b>Miranda</b>: {{{text}}}
           </div>
         {{/isSystem}}
         {{#isNormal}}
           <div class="{{getClasses}}">
             <img src="/store/icons/{{icon}}" loading="lazy">
-            <span>{{name}}</span>: <span>{{{text}}}</span>
+            <b style="{{getColor}}">{{name}}</b>: {{{text}}}
           </div>
         {{/isNormal}}
       {{/messages}}
     </template>
   </main>
-  <div class="controls">
-    <i id="scroll" class="material-icons">arrow_downward</i>
-  </div>
   <script>
     window.names = ['{{ names }}']
     window.ya.speechkit.settings.apikey = '{{ tts_api_key }}'

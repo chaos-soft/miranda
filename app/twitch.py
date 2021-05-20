@@ -45,12 +45,12 @@ class Twitch(Chat):
         await w.send_str(f'JOIN #{self.channel}\r\n')
 
     async def on_message(self, data, w):
-        if 'USERNOTICE' in data:
+        if 'PRIVMSG' in data:
+            await self.add_message(await self.parse_data(data))
+        elif 'USERNOTICE' in data:
             await self.add_notify(await self.parse_data(data))
         elif data.startswith('PING'):
             await self.send_pong(data, w)
-        elif 'PRIVMSG' in data:
-            await self.add_message(await self.parse_data(data))
 
     async def send_pong(self, data, w):
         await w.send_str(f'{data.replace("PING", "PONG")}\r\n')
@@ -92,7 +92,7 @@ class Twitch(Chat):
             indexes = indexes.split(',', 1)[0].split('-')
             message['replacements'] += [[
                 f'image{i}',
-                int(id),
+                id,
                 message['text'][int(indexes[0]):int(indexes[1]) + 1],
             ]]
         message.pop('emotes')
@@ -122,7 +122,7 @@ class TwitchFollows(Chat):
     params = {'first': 100, 'to_id': None}
     # https://dev.twitch.tv/docs/api/reference/#get-users-follows
     url = 'https://api.twitch.tv/helix/users/follows'
-    text = CONFIG['twitch'].getlist('text')[2]
+    text = CONFIG['twitch'].getlist('text')[1]
 
     async def main(self):
         while True:
@@ -171,45 +171,6 @@ class TwitchFollows(Chat):
             return None
         for follow in data['data']:
             text = self.text.format(follow['display_name'] or follow['login'])
-            MESSAGES.append(dict(id='e', text=text))
-
-
-class TwitchHosts(Chat):
-    is_first_run = True
-    channel_id = None
-    # Недокументированное.
-    url = 'https://tmi.twitch.tv/hosts?include_logins=1&target={}'
-    text = CONFIG['twitch'].getlist('text')[1]
-
-    async def main(self):
-        while True:
-            if channel_id:
-                self.url = self.url.format(channel_id)
-                sleep = await self.load()
-            else:
-                sleep = TIMEOUT_NEXT
-            await asyncio.sleep(sleep)
-
-    async def load(self):
-        data = await make_request(self.url, timeout=TIMEOUT)
-        if not data:
-            return TIMEOUT_ERROR
-        new_hosts = []
-        for host in data['hosts']:
-            if host['host_id'] in HOSTS:
-                break
-            HOSTS.append(host['host_id'])
-            new_hosts.append(host['host_display_name'] or host['host_login'])
-        if new_hosts and not self.is_first_run:
-            await self.alert(new_hosts)
-        if self.is_first_run:
-            self.is_first_run = False
-            await self.print_error(f'{{}} запущен ({len(HOSTS)}).')
-        return TIMEOUT_SUCCESS
-
-    async def alert(self, hosts):
-        for host in hosts:
-            text = self.text.format(host)
             MESSAGES.append(dict(id='e', text=text))
 
 

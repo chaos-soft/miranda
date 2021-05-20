@@ -22,11 +22,10 @@ class BaseChat extends Chat {
     if (message.id === 'js' && message.text === 'refresh_stats') {
       document.getElementById(message.sid).innerHTML = message.stext
     } else if (message.id in this.icons) {
-      names.forEach((name) => {
+      names.every((name) => {
         if (message.text.search(name) !== -1) {
-          if (message.classes.indexOf('m') === -1) {
-            message.classes.push('m')
-          }
+          message.classes.push('name')
+          return false
         }
       })
     }
@@ -37,12 +36,12 @@ class BaseChat extends Chat {
 
   startScroll () {
     this.isScroll = true
-    this.scrollElement.style.removeProperty('display')
+    this.scrollElement.classList.remove('active')
   }
 
   stopScroll () {
     this.isScroll = false
-    this.scrollElement.style.display = 'block'
+    this.scrollElement.classList.add('active')
   }
 }
 

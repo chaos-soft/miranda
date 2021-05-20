@@ -16,13 +16,13 @@
       {{#messages}}
         {{#isSystem}}
           <div class="{{getClasses}} o0">
-            <span>Miranda</span>: {{{text}}}
+            <b>Miranda</b>: {{{text}}}
           </div>
         {{/isSystem}}
         {{#isNormal}}
           <div class="{{getClasses}} o0">
             <img src="/store/icons/{{icon}}" loading="lazy">
-            <span style="{{getColor}}">{{name}}</span>: <span>{{{text}}}</span>
+            <b style="{{getColor}}">{{name}}</b>: {{{text}}}
           </div>
         {{/isNormal}}
       {{/messages}}

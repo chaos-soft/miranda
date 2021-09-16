@@ -2,22 +2,23 @@ from datetime import datetime
 import asyncio
 
 from chat import Chat
-from common import make_request, MESSAGES, TIMEOUT_STATS
+from common import make_request, MESSAGES, STATS
 from config import CONFIG
 import aiohttp
 
 HEADERS = {
     'Client-ID': 'g0qvsrztagks1lbg03kwnt67pg9x8a5',
-    'Authorization': 'Bearer zvdlec2bqyyp6t9n6sm15d40kc2gpf',
+    'Authorization': 'Bearer 7efez7cxjfvsuaxnn7dwp7q5nnrst6',
 }
 TIMEOUT = aiohttp.ClientTimeout(total=10)
 
 FOLLOWS = {}
 HOSTS = []
 
-TIMEOUT_SUCCESS = 60 * 5
-TIMEOUT_ERROR = 60 * 10
-TIMEOUT_NEXT = 5
+TIMEOUT_ERROR: int = 60 * 10
+TIMEOUT_NEXT: int = 5
+TIMEOUT_STATS: int = 60
+TIMEOUT_SUCCESS: int = 60 * 5
 
 
 class Twitch(Chat):
@@ -160,7 +161,7 @@ class TwitchFollows(Chat):
             self.params.pop('after', None)
             self.params['first'] = 10
             self.is_first_run = False
-            await self.print_error(f'{{}} запущен ({len(FOLLOWS)}).')
+            await self.print_error(f'запущен ({len(FOLLOWS)})')
             return TIMEOUT_SUCCESS
 
     async def alert(self, follows):
@@ -177,17 +178,17 @@ class TwitchFollows(Chat):
 class TwitchStats(Chat):
     url = 'https://api.twitch.tv/helix/streams?user_login={}&first=1'
 
-    async def main(self):
-        await self.on_start()
-        self.url = self.url.format(self.channel)
-        while True:
-            await self.load()
-            await asyncio.sleep(TIMEOUT_STATS)
+    async def alert(self, v: str) -> None:
+        STATS['t'] = v
 
     async def load(self):
         data = await make_request(self.url, timeout=TIMEOUT, headers=HEADERS)
         if data:
             await self.alert(data['data'][0]['viewer_count'] if data['data'] else '-')
 
-    async def alert(self, v):
-        MESSAGES.append(dict(id='js', text='refresh_stats', sid='t', stext=v))
+    async def main(self):
+        await self.on_start()
+        self.url = self.url.format(self.channel)
+        while True:
+            await self.load()
+            await asyncio.sleep(TIMEOUT_STATS)

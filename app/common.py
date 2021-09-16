@@ -1,14 +1,14 @@
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Union
 import asyncio
 import collections
 import html
 
 import aiohttp
 
-D = Dict[str, str]
-EXCLUDE_IDS: List[str] = ['m']
-TIMEOUT_STATS: int = 60
+D = dict[str, Any]
+EXCLUDE_IDS: list[str] = ['m']
+STATS: dict[str, Union[int, str]] = {}
 
 
 class UserList(collections.UserList[D]):
@@ -51,7 +51,7 @@ async def print_error(e: str) -> None:
     MESSAGES.append(dict(id='m', text=text))
 
 
-def str_to_list(str_: str) -> List[str]:
+def str_to_list(str_: str) -> list[str]:
     """Парсит строку с запятыми в массив."""
     return list(map(str.strip, str_.split(',')))
 

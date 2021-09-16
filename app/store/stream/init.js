@@ -62,7 +62,7 @@ function init () {
   chat = new StreamChat()
   setInterval(() => {
     get(
-      `/messages?offset=${chat.offset}`,
+      `messages?offset=${chat.offset}`,
       (data) => chat.core(data))
   }, 5 * 1000)
   setInterval(() => chat.scroll(), 1000)

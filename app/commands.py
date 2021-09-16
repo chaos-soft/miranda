@@ -1,19 +1,19 @@
 from datetime import datetime
 import asyncio
 
-from common import MESSAGES, EXCLUDE_IDS
-from config import CONFIG
 from chat import Base
+from common import D, EXCLUDE_IDS, MESSAGES
+from config import CONFIG
 
 EXCLUDE_IDS.extend(['js', 'tts'])
 INCLUDE_IDS = ['p', 'e']
 
 
 class Commands(Base):
-    offset = 0
-    start_timestamp = datetime.now().timestamp()
-    root = CONFIG['base'].getlist('root')
     friendly = CONFIG['base'].getlist('friendly')
+    offset = 0
+    root = CONFIG['base'].getlist('root')
+    start_timestamp = datetime.now().timestamp()
 
     async def main(self):
         await self.on_start()
@@ -140,3 +140,7 @@ class Commands(Base):
 
     async def add_secret(self, **kwargs):
         MESSAGES.append(dict(id='m', text='xxx'))
+
+    async def add_wasd(self, message: D, command_text: str) -> None:
+        CONFIG['wasd']['stream'], CONFIG['wasd']['channel'], CONFIG['wasd']['jwt'] = \
+            command_text.split('@')

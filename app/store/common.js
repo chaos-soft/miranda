@@ -3,7 +3,7 @@
 
 class Chat {
   constructor () {
-    this.icons = { t: 't.ico', g: 'g.png', s: 's.ico', y: 'y.png' }
+    this.icons = { g: 'g.png', s: 's.ico', t: 't.ico', w: 'w.png', y: 'y.png' }
     this.isClean = false
     this.isScroll = true
     this.main = document.getElementsByClassName('main')[0]
@@ -73,7 +73,11 @@ class Chat {
 
   scroll () {
     if (this.isScroll) {
-      window.scroll(0, this.main.scrollHeight)
+      const main = this.main.offsetTop + this.main.scrollHeight
+      const window_ = window.innerHeight + window.scrollY
+      if (main !== window_) {
+        window.scroll(0, main)
+      }
     }
   }
 }

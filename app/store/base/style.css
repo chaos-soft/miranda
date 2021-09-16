@@ -1,7 +1,7 @@
 a,
 body {
   color: black;
-  font: 18px/22px sans-serif;
+  font: bold 18px/22px sans-serif;
 }
 
 html {
@@ -10,6 +10,7 @@ html {
 
 .main {
   margin-top: 34px;
+  overflow: hidden;
 }
 
 .main > div > b {
@@ -55,7 +56,7 @@ html {
 @media (min-width: 960px) {
   a,
   body {
-    font: 14px/18px sans-serif;
+    font: normal 14px/18px sans-serif;
   }
 
   .wrapper {

@@ -1,15 +1,17 @@
 from datetime import datetime
+from typing import Any, Union
+import asyncio
 import collections
 import html
-import asyncio
 
 import aiohttp
 
-EXCLUDE_IDS = ['m']
-MESSAGES = None
+D = dict[str, Any]
+EXCLUDE_IDS: list[str] = ['m']
+STATS: dict[str, Union[int, str]] = {}
 
 
-class UserList(collections.UserList):
+class UserList(collections.UserList[D]):
     """Список с кастомизированным append().
 
     Метод применяет html.escape к message['text'],
@@ -17,24 +19,19 @@ class UserList(collections.UserList):
 
     """
 
-    def append(self, message):
+    def append(self, message: D) -> None:
         if message['id'] not in EXCLUDE_IDS:
             message['text'] = html.escape(message['text'], quote=True)
         super().append(message)
 
 
-async def print_error(e):
-    text = f'[{str(datetime.now()).split(".")[0]}] {e}'
-    print(text)
-    MESSAGES.append(dict(id='m', text=text))
-
-
-def str_to_list(str_):
-    """Парсит строку с запятыми в массив."""
-    return list(map(str.strip, str_.split(',')))
-
-
-async def make_request(url, retries=1, method='GET', sleep=5, **kwargs):
+async def make_request(
+    url: str,
+    retries: int = 1,
+    method: str = 'GET',
+    sleep: int = 5,
+    **kwargs: Any,
+) -> Any:
     while retries:
         try:
             async with aiohttp.request(method, url, **kwargs) as r:
@@ -48,4 +45,15 @@ async def make_request(url, retries=1, method='GET', sleep=5, **kwargs):
     return None
 
 
-MESSAGES = UserList()
+async def print_error(e: str) -> None:
+    text = f'[{str(datetime.now()).split(".")[0]}] {e}'
+    print(text)
+    MESSAGES.append(dict(id='m', text=text))
+
+
+def str_to_list(str_: str) -> list[str]:
+    """Парсит строку с запятыми в массив."""
+    return list(map(str.strip, str_.split(',')))
+
+
+MESSAGES: UserList = UserList()

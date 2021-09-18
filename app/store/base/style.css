@@ -1,27 +1,67 @@
-a, body {
-    color: white;
-    font: bold 16px/18px sans-serif;
+a,
+body {
+  color: black;
+  font: bold 18px/22px sans-serif;
 }
-
 
 html {
-    background: rgba(0, 0, 0, 0.88);
-    /* Чтобы не появлялась полоса прокрутки при движении курсора. */
-    overflow-x: hidden;
+  background: white;
 }
 
+.main {
+  margin-top: 34px;
+  overflow: hidden;
+}
 
-#controls {
-    position: fixed;
-    top: 8px;
-    right: 10px;
+.main > div > b {
+  color: #3992d6;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
 }
-#controls > .material-icons {
-    vertical-align: top;
-    cursor: pointer;
-    font-size: 48px;
-    text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+
+.panel {
+  background-color: black;
+  color: white;
+  display: flex;
+  font: 14px/24px sans-serif;
+  justify-content: center;
+  left: 0;
+  padding: 5px 0;
+  position: fixed;
+  top: 0;
+  width: 100%;
 }
-#main > div > :nth-child(2) {
-    color: #3992d6;
+
+.panel > * {
+  padding: 0 5px;
+}
+
+.panel > i:not(.active) {
+  color: rgba(255, 255, 255, .4);
+}
+
+.panel > i.active {
+  cursor: pointer;
+}
+
+.panel > div > img {
+  vertical-align: -4px;
+}
+
+.wrapper {
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+@media (min-width: 960px) {
+  a,
+  body {
+    font: normal 14px/18px sans-serif;
+  }
+
+  .wrapper {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 940px;
+  }
 }

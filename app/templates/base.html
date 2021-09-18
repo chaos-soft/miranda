@@ -1,43 +1,44 @@
 <!DOCTYPE html>
 <html lang="ru">
-    <head>
-        <meta charset="utf-8">
-        <title>Miranda</title>
-        <meta name="description" content="">
-        <meta name="keywords" content="">
-        <link rel="stylesheet" href="/store/base.css">
-        <link rel="stylesheet" href="/store/base/style.css">
-        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-        <script src="https://webasr.yandex.net/jsapi/v1/webspeechkit.js"></script>
-        <script src="https://webasr.yandex.net/jsapi/v1/webspeechkit-settings.js"></script>
-        <script src="https://goodgame.ru/js/minified/global.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/vue"></script>
-        <script src="/store/common.js"></script>
-        <script src="/store/base/init.js"></script>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body>
-        <div id="main">
-            <div v-for="message in getMessages" :class="message.classes.join(' ')">
-                <template v-if="['p', 'e', 'm', 'js'].indexOf(message.id) !== -1">
-                    <span>Miranda</span>: {{ message.text }}
-                </template>
-                <template v-else>
-                    <img :src="'/store/icons/' + message.icon">
-                    <span>{{ message.name }}</span>:
-                    <span v-html="message.text"></span>
-                </template>
-            </div>
-            <div id="controls">
-                <i v-if="isScroll" @click="toggleScroll" class="material-icons"
-                   title="Прокрутка">play_circle_outline</i>
-                <i v-else @click="toggleScroll" class="material-icons"
-                   title="Прокрутка">pause_circle_outline</i>
-            </div>
-        </div>
-        <script>
-            window.names = [{{ names }}]
-            window.ya.speechkit.settings.apikey = '{{ tts_api_key }}'
-        </script>
-    </body>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="store/base.css">
+  <link rel="stylesheet" href="store/base/style.css">
+  <meta charset="utf-8">
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://static.goodgame.ru/js/minified/global.js"></script>
+  <script src="https://unpkg.com/mustache@4.2.0/mustache.min.js"></script>
+  <script src="https://webasr.yandex.net/jsapi/v1/webspeechkit-settings.js"></script>
+  <script src="https://webasr.yandex.net/jsapi/v1/webspeechkit.js"></script>
+  <script src="store/common.js"></script>
+  <script src="store/base/init.js"></script>
+  <title>Miranda</title>
+  <div class="panel">
+    <div><img src="store/icons/g.png"> <span id="g">-</span></div>
+    <div><img src="store/icons/t.ico"> <span id="t">-</span></div>
+    <div><img src="store/icons/w.png"> <span id="w">-</span></div>
+    <i id="scroll" class="material-icons">arrow_downward</i>
+  </div>
+  <main class="main wrapper">
+    <template id="messages">
+      {{#messages}}
+        {{#isSystem}}
+          <div class="{{getClasses}}">
+            <b>Miranda</b>: {{{text}}}
+          </div>
+        {{/isSystem}}
+        {{#isNormal}}
+          <div class="{{getClasses}}">
+            <img src="store/icons/{{icon}}" loading="lazy">
+            <b style="{{getColor}}">{{name}}</b>: {{{text}}}
+          </div>
+        {{/isNormal}}
+      {{/messages}}
+    </template>
+  </main>
+  <script>
+    window.names = ['{{ names }}']
+    window.ya.speechkit.settings.apikey = '{{ tts_api_key }}'
+  </script>
 </html>

@@ -1,39 +1,20 @@
 'use strict'
-/* global XMLHttpRequest, scrollTo, Global, app */
+/* global Global, Mustache, XMLHttpRequest */
 
-window.get = function (url, callbackSuccess, callbackError) {
-  var xhr = new XMLHttpRequest()
-  xhr.addEventListener('load', function () {
-    if (xhr.status === 200) {
-      callbackSuccess(JSON.parse(this.responseText))
-    }
-  })
-  xhr.addEventListener('error', function () {
-    if (callbackError) {
-      callbackError()
-    }
-  })
-  xhr.open('GET', url, true)
-  xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest')
-  xhr.send()
-}
-
-window.Chat = class {
+class Chat {
   constructor () {
+    this.icons = { g: 'g.png', s: 's.ico', t: 't.ico', w: 'w.png', y: 'y.png' }
+    this.isClean = false
+    this.isScroll = true
+    this.main = document.getElementsByClassName('main')[0]
+    this.messages = document.getElementById('messages').innerHTML
     this.offset = 0
-    this.icons = { t: 't.ico', g: 'g.png', s: 's.ico', y: 'y.png' }
+    this.systemIds = ['e', 'm', 'p']
   }
 
-  preLoop () {
-  }
-
-  postLoop () {
-  }
-
-  processMessage (message) {
-  }
-
-  emptyData () {
+  clean () {
+    this.isClean = false
+    this.main.querySelectorAll(':scope > div').forEach((div) => div.remove())
   }
 
   core (data) {
@@ -43,27 +24,65 @@ window.Chat = class {
       return
     }
     this.preLoop()
-    var thisCache = this
-    data.messages.forEach(function (message) {
-      message.classes = [message.id]
-      if (message.id in thisCache.icons) {
-        message.icon = thisCache.icons[message.id]
-        new Message(message).replace()
-      }
-      thisCache.processMessage(message)
-      app.messages.push(message)
-    })
+    data.messages.forEach((message) => this.processMessage(message))
+    if (this.isClean) {
+      this.clean()
+    }
+    this.render(data)
     this.postLoop()
   }
 
-  scroll (timeout = 200) {
-    setTimeout(function () {
-      scrollTo(0, app.$el.scrollHeight)
-    }, timeout)
+  emptyData () {
+  }
+
+  preLoop () {
+  }
+
+  postLoop () {
+  }
+
+  processMessage (message) {
+    message.classes = [message.id]
+    if (message.id === 'js' && message.text === 'clean_chat') {
+      this.isClean = true
+    } else if (message.id in this.icons) {
+      message.icon = this.icons[message.id]
+      new Message(message).replace()
+    }
+    message.getClasses = () => message.classes.join(' ')
+    message.getColor = () => {
+      if ('color' in message) {
+        return `color: ${message.color}`
+      }
+    }
+    message.isNormal = () => {
+      if (message.id in this.icons) {
+        return true
+      }
+    }
+    message.isSystem = () => {
+      if (this.systemIds.indexOf(message.id) !== -1) {
+        return true
+      }
+    }
+  }
+
+  render (data) {
+    this.main.insertAdjacentHTML('beforeend', Mustache.render(this.messages, data))
+  }
+
+  scroll () {
+    if (this.isScroll) {
+      const main = this.main.offsetTop + this.main.scrollHeight
+      const window_ = window.innerHeight + window.scrollY
+      if (main !== window_) {
+        window.scroll(0, main)
+      }
+    }
   }
 }
 
-var Message = class {
+class Message {
   constructor (message) {
     this.message = message
     this.replacements = 'replacements' in message ? message.replacements : []
@@ -71,15 +90,14 @@ var Message = class {
   }
 
   prepareG () {
-    var m = this.message.text.match(this.reSmile)
+    const m = this.message.text.match(this.reSmile)
     if (m) {
-      var thisCache = this
-      m.forEach(function (replacement) {
-        var smileName = replacement.slice(1, -1)
-        var isFound = false
-        Global.Smiles.some(function (smile) {
+      m.forEach((replacement) => {
+        const smileName = replacement.slice(1, -1)
+        let isFound = false
+        Global.Smiles.some((smile) => {
           if (smile.name === smileName) {
-            thisCache.replacements.push([
+            this.replacements.push([
               replacement,
               smile.animated ? smile.img_gif : smile.img_big
             ])
@@ -88,11 +106,11 @@ var Message = class {
           }
         })
         if (!isFound) {
-          thisCache.message.premiums.some(function (id) {
+          this.message.premiums.some((id) => {
             if (id in Global.Channel_Smiles) {
-              Global.Channel_Smiles[id].some(function (smile) {
+              Global.Channel_Smiles[id].some((smile) => {
                 if (smile.name === smileName) {
-                  thisCache.replacements.push([
+                  this.replacements.push([
                     replacement,
                     smile.animated ? smile.img_gif : smile.img_big
                   ])
@@ -111,12 +129,11 @@ var Message = class {
   }
 
   prepareS () {
-    var m = this.message.text.match(this.reSmile)
+    const m = this.message.text.match(this.reSmile)
     if (m) {
-      var thisCache = this
-      m.forEach(function (replacement) {
-        var smileName = replacement.slice(1, -1)
-        thisCache.replacements.push([
+      m.forEach((replacement) => {
+        const smileName = replacement.slice(1, -1)
+        this.replacements.push([
           replacement,
           `https://sc2tv.ru/images/smiles/${smileName}.png`
         ])
@@ -125,32 +142,25 @@ var Message = class {
   }
 
   prepareT () {
-    var thisCache = this
-    this.message.emotes.split('/').forEach(function (emote) {
-      var idIndexes = emote.split(':')
-      idIndexes[1].split(',').forEach(function (i) {
-        i = i.split('-')
-        thisCache.replacements.push([
-          thisCache.message.text.substring(parseInt(i[0]), parseInt(i[1]) + 1),
-          `https://static-cdn.jtvnw.net/emoticons/v1/${idIndexes[0]}/1.0`
-        ])
-      })
-    })
+    for (const r of this.replacements) {
+      if (r.length === 2) {
+        r[1] = `https://static-cdn.jtvnw.net/emoticons/v1/${r[1]}/1.0`
+      }
+    }
   }
 
   replace_ () {
-    var search
-    var img
-    var thisCache = this
-    this.replacements.reverse().forEach(function (replacement) {
+    let img
+    let search
+    this.replacements.forEach((replacement) => {
       if (replacement.length === 2) {
-        search = replacement[0]
         img = `<img src="${replacement[1]}">`
+        search = new RegExp(replacement[0], 'gi')
       } else {
-        search = replacement
         img = `<img src="${replacement}">`
+        search = replacement
       }
-      thisCache.message.text = thisCache.message.text.replace(search, img)
+      this.message.text = this.message.text.replace(search, img)
     })
   }
 
@@ -159,9 +169,26 @@ var Message = class {
       this.prepareG()
     } else if (this.message.id === 's') {
       this.prepareS()
-    } else if (this.message.id === 't' && this.message.emotes) {
+    } else if (this.message.id === 't') {
       this.prepareT()
     }
     this.replace_()
   }
+}
+
+function get (url, callbackSuccess, callbackError) {
+  const xhr = new XMLHttpRequest()
+  xhr.addEventListener('load', () => {
+    if (xhr.status === 200) {
+      callbackSuccess(JSON.parse(xhr.responseText))
+    }
+  })
+  xhr.addEventListener('error', () => {
+    if (callbackError) {
+      callbackError()
+    }
+  })
+  xhr.open('GET', url, true)
+  xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest')
+  xhr.send()
 }

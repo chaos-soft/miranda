@@ -2,26 +2,28 @@ from datetime import datetime
 import asyncio
 
 from chat import Chat
-from common import MESSAGES, make_request
+from common import make_request, MESSAGES, STATS
 from config import CONFIG
 import aiohttp
 
 HEADERS = {
-    'Client-ID': 'l0sytxv7tot9ynjakkx4o6ddlpn6qp',
-    'Authorization': 'Bearer upk86jkjcnqxem2ds5kz1ua4huavet',
+    'Client-ID': 'g0qvsrztagks1lbg03kwnt67pg9x8a5',
+    'Authorization': 'Bearer 7efez7cxjfvsuaxnn7dwp7q5nnrst6',
 }
 TIMEOUT = aiohttp.ClientTimeout(total=10)
 
 FOLLOWS = {}
 HOSTS = []
 
-TIMEOUT_SUCCESS = 60 * 5
-TIMEOUT_ERROR = 60 * 10
-TIMEOUT_NEXT = 5
+TIMEOUT_ERROR: int = 60 * 10
+TIMEOUT_NEXT: int = 5
+TIMEOUT_STATS: int = 60
+TIMEOUT_SUCCESS: int = 60 * 5
 
 
 class Twitch(Chat):
     text = CONFIG['twitch'].getlist('text')[0]
+    keys = ['color', 'emotes', 'display-name', 'user-id', 'system-msg']
 
     async def main(self, session):
         while True:
@@ -44,44 +46,61 @@ class Twitch(Chat):
         await w.send_str(f'JOIN #{self.channel}\r\n')
 
     async def on_message(self, data, w):
-        if 'USERNOTICE' in data:
+        if 'PRIVMSG' in data:
+            await self.add_message(await self.parse_data(data))
+        elif 'USERNOTICE' in data:
             await self.add_notify(await self.parse_data(data))
         elif data.startswith('PING'):
             await self.send_pong(data, w)
-        elif 'PRIVMSG' in data:
-            await self.add_message(await self.parse_data(data))
 
     async def send_pong(self, data, w):
         await w.send_str(f'{data.replace("PING", "PONG")}\r\n')
 
-    async def add_notify(self, data):
-        text = self.text.format(data['system-msg'].replace(r'\s', ' '))
+    async def add_notify(self, message):
+        text = self.text.format(message['system-msg'].replace(r'\s', ' '))
         MESSAGES.append(dict(id='e', text=text))
 
     async def parse_data(self, data):
         parts = data.split(' ', 4)
-        result = dict(text=(parts[4][1:] if len(parts) == 5 else None))
-        # Сохраняет все ключи и значения.
+        message = {}
+        if len(parts) == 5:
+            message['text'] = await self.clean_text(parts[4][1:])
         for part in parts[0].split(';'):
             k, v = part.split('=')
-            result[k] = v
-        result['name'] = result['display-name']
-        if not result['name']:
-            # :chaos_soft!chaos_soft@chaos_soft.tmi.twitch.tv
-            result['name'] = parts[1].split('!', 1)[0][1:]
-        return result
+            if v and k in self.keys:
+                message[k] = v
+        return message
 
-    async def add_message(self, data):
-        message = dict(id='t', name=data['name'],
-                       text=await self.clean_text(data['text']),
-                       color=data['color'], emotes=data['emotes'])
-        if data['user-id'] in FOLLOWS:
-            message['timestamp'] = FOLLOWS[data['user-id']]
+    async def add_message(self, message):
+        message['id'] = 't'
+        if message['user-id'] in FOLLOWS:
+            message['timestamp'] = FOLLOWS[message['user-id']]
+        message.pop('user-id')
+        message['name'] = message.pop('display-name')
+        await self.parse_emotes(message)
         MESSAGES.append(message)
 
     async def clean_text(self, text):
         """Очищает от /me."""
         return text[8:-1] if text.startswith('\x01') else text
+
+    async def parse_emotes(self, message):
+        if 'emotes' not in message:
+            return None
+        message['replacements'] = []
+        for i, emote in enumerate(message['emotes'].split('/')):
+            id, indexes = emote.split(':')
+            indexes = indexes.split(',', 1)[0].split('-')
+            message['replacements'] += [[
+                f'image{i}',
+                id,
+                message['text'][int(indexes[0]):int(indexes[1]) + 1],
+            ]]
+        message.pop('emotes')
+        message['replacements'].sort(key=lambda r: r[1], reverse=True)
+        for r in message['replacements']:
+            message['text'] = message['text'].replace(r[2], r[0])
+            del r[2]
 
 
 channel_id = None
@@ -104,7 +123,7 @@ class TwitchFollows(Chat):
     params = {'first': 100, 'to_id': None}
     # https://dev.twitch.tv/docs/api/reference/#get-users-follows
     url = 'https://api.twitch.tv/helix/users/follows'
-    text = CONFIG['twitch'].getlist('text')[2]
+    text = CONFIG['twitch'].getlist('text')[1]
 
     async def main(self):
         while True:
@@ -142,7 +161,7 @@ class TwitchFollows(Chat):
             self.params.pop('after', None)
             self.params['first'] = 10
             self.is_first_run = False
-            await self.print_error(f'{{}} запущен ({len(FOLLOWS)}).')
+            await self.print_error(f'запущен ({len(FOLLOWS)})')
             return TIMEOUT_SUCCESS
 
     async def alert(self, follows):
@@ -156,40 +175,20 @@ class TwitchFollows(Chat):
             MESSAGES.append(dict(id='e', text=text))
 
 
-class TwitchHosts(Chat):
-    is_first_run = True
-    channel_id = None
-    # Недокументированное.
-    url = 'https://tmi.twitch.tv/hosts?include_logins=1&target={}'
-    text = CONFIG['twitch'].getlist('text')[1]
+class TwitchStats(Chat):
+    url = 'https://api.twitch.tv/helix/streams?user_login={}&first=1'
 
-    async def main(self):
-        while True:
-            if channel_id:
-                self.url = self.url.format(channel_id)
-                sleep = await self.load()
-            else:
-                sleep = TIMEOUT_NEXT
-            await asyncio.sleep(sleep)
+    async def alert(self, v: str) -> None:
+        STATS['t'] = v
 
     async def load(self):
-        data = await make_request(self.url, timeout=TIMEOUT)
-        if not data:
-            return TIMEOUT_ERROR
-        new_hosts = []
-        for host in data['hosts']:
-            if host['host_id'] in HOSTS:
-                break
-            HOSTS.append(host['host_id'])
-            new_hosts.append(host['host_display_name'] or host['host_login'])
-        if new_hosts and not self.is_first_run:
-            await self.alert(new_hosts)
-        if self.is_first_run:
-            self.is_first_run = False
-            await self.print_error(f'{{}} запущен ({len(HOSTS)}).')
-        return TIMEOUT_SUCCESS
+        data = await make_request(self.url, timeout=TIMEOUT, headers=HEADERS)
+        if data:
+            await self.alert(data['data'][0]['viewer_count'] if data['data'] else '-')
 
-    async def alert(self, hosts):
-        for host in hosts:
-            text = self.text.format(host)
-            MESSAGES.append(dict(id='e', text=text))
+    async def main(self):
+        await self.on_start()
+        self.url = self.url.format(self.channel)
+        while True:
+            await self.load()
+            await asyncio.sleep(TIMEOUT_STATS)

@@ -1,7 +1,7 @@
 'use strict'
-/* global Chat, get, names, ya */
+/* global Chat, get, ya */
 
-class BaseChat extends Chat {
+class MainChat extends Chat {
   constructor () {
     super()
     this.scrollElement = document.getElementById('scroll')
@@ -10,26 +10,9 @@ class BaseChat extends Chat {
 
   error () {
     if (this.offset) {
-      const message = { id: 'm', text: 'потеряно соединение.', classes: ['m'] }
-      this.processMessage(message)
-      this.render({ messages: message })
+      this.render({ messages: 'Потеряно соединение' })
     }
     this.offset = 0
-  }
-
-  processMessage (message) {
-    super.processMessage(message)
-    if (message.id in this.icons) {
-      names.every((name) => {
-        if (message.text.search(name) !== -1) {
-          message.classes.push('name')
-          return false
-        }
-      })
-    }
-    if (message.id === 'tts') {
-      tts.push(message.text)
-    }
   }
 
   refreshStats (data) {
@@ -75,21 +58,23 @@ class Tts extends Array {
 let chat
 let tts
 
-function init () {
-  chat = new BaseChat()
+function main () {
+  chat = new MainChat()
   setInterval(() => {
     get(
-      `messages?offset=${chat.offset}`,
-      (data) => chat.core(data),
+      `http://localhost:55555/messages?offset=${chat.offset}`,
+      (data) => chat.main(data),
       () => chat.error())
+    get('http://localhost:55555/stats', (data) => chat.refreshStats(data))
   }, 5 * 1000)
-  setInterval(() => chat.scroll(), 1000)
-  setInterval(() => get('stats', (data) => chat.refreshStats(data)), 60 * 1000)
   tts = new Tts()
-  setInterval(() => tts.worker(), 1000)
+  setInterval(() => {
+    chat.scroll()
+    tts.worker()
+  }, 1000)
 }
 
-document.addEventListener('DOMContentLoaded', () => init())
+document.addEventListener('DOMContentLoaded', () => main())
 document.addEventListener('keydown', (e) => {
   if (['PageUp', 'Home', 'ArrowUp'].indexOf(e.key) !== -1) {
     chat.stopScroll()

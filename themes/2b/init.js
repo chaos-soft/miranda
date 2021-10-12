@@ -5,7 +5,6 @@ class TwoBChat extends Chat {
   constructor () {
     super()
     this.offset = -10
-    this.systemIds = ['p', 'e']
   }
 
   emptyData () {
@@ -18,14 +17,14 @@ class TwoBChat extends Chat {
 
   postLoop () {
     setTimeout(() => {
-      for (const div of this.main.querySelectorAll(':scope > .o0')) {
+      for (const div of this.main_.querySelectorAll(':scope > .o0')) {
         div.classList.remove('o0')
       }
     }, 100)
   }
 
   removeMessages () {
-    for (const div of this.main.querySelectorAll(':scope > div')) {
+    for (const div of this.main_.querySelectorAll(':scope > div')) {
       if (div.classList.contains('remove')) {
         div.remove()
       } else {
@@ -38,13 +37,14 @@ class TwoBChat extends Chat {
 
 let chat
 
-function init () {
+function main () {
   chat = new TwoBChat()
   setInterval(() => {
     get(
-      `messages?offset=${chat.offset}`,
-      (data) => chat.core(data))
+      `http://localhost:55555/messages?offset=${chat.offset}`,
+      (data) => chat.main(data),
+      () => chat.emptyData())
   }, 5 * 1000)
 }
 
-document.addEventListener('DOMContentLoaded', () => init())
+document.addEventListener('DOMContentLoaded', () => main())

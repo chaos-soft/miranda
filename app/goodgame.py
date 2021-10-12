@@ -1,50 +1,39 @@
-import json
+from typing import Any
 
-from chat import WebSocket
-from common import D, MESSAGES, STATS
-from config import CONFIG
+from selenium import webdriver
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+
+import common
+
+DRIVER: Any = webdriver.Remote(desired_capabilities=DesiredCapabilities.FIREFOX)
 
 
-class GoodGame(WebSocket):
-    text: list[str] = CONFIG['base'].getlist('text')
-    url: str = 'wss://chat.goodgame.ru/chat/websocket'
+class Chat(common.Commands):
+    driver = DRIVER
+    element: str = '/html/body/div/div[3]/div[4]/gg-feed-ctrl/div[3]/div/div[1]/div[2]/div/div[3]/div[2]/div[2]/div/ng-transclude/div'  # noqa: E501
 
-    async def add_message(self, data: D) -> None:
-        message = dict(id='g', name=data['user_name'], text=data['text'],
-                       premiums=data['premiums'])
-        MESSAGES.append(message)
+    def process_element(self, element: Any) -> None:
+        if element.get_attribute('className') == 'message-block ':
+            super().process_element(element)
 
-    async def add_payment(self, data: D) -> None:
-        if data['message']:
-            text = self.text[0].format(data['userName'], data['message'])
-        else:
-            text = self.text[1].format(data['userName'])
-        MESSAGES.append(dict(id='p', text=text))
+    def render_element(self, element: Any) -> None:
+        common.MESSAGES.append(element.get_attribute('outerHTML').replace(
+                               '"/', '"https://goodgame.ru/'))
 
-    async def add_premium(self, data: D) -> None:
-        text = CONFIG['goodgame']['text'].format(data['userName'])
-        MESSAGES.append(dict(id='e', text=text))
 
-    async def add_stats(self, data: D) -> None:
-        STATS['g'] = f'{data["users_in_channel"]}, {data["clients_in_channel"]}'
+class Play(common.Play):
+    driver = DRIVER
+    element: str = '//*[@id="_bigPlayBtn"]'
 
-    async def on_message(self, data_str: str) -> None:
-        data = json.loads(data_str)
-        if data['type'] == 'channel_counters':
-            await self.add_stats(data['data'])
-        elif data['type'] == 'message':
-            await self.add_message(data['data'])
-        elif data['type'] == 'payment':
-            await self.add_payment(data['data'])
-        elif data['type'] == 'premium':
-            await self.add_premium(data['data'])
+    def process_element(self, element: Any) -> None:
+        element.click()
 
-    async def on_open(self) -> None:
-        data = {
-            'data': {
-                'channel_id': self.channel,
-                'hidden': False,
-            },
-            'type': 'join',
-        }
-        await self.w.send_str(json.dumps(data))
+
+class Viewers(common.Viewers):
+    driver = DRIVER
+    element: str = '/html/body/div/div[2]/section/gg-main-scroll/div/div[1]/div[2]/div/div/div/div/div[1]/div/div/div[3]/div[1]/div/div[2]/div[3]/span/span[2]'  # noqa: E501
+    id: str = 'g'
+
+
+def close_driver() -> None:
+    DRIVER.close()

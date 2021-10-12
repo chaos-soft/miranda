@@ -13,8 +13,10 @@ html {
   overflow: hidden;
 }
 
-.main > div > b {
-  color: #3992d6;
+.main > div > .chat-line__no-background .chat-author__display-name,
+.main > div > .message__info__text .info__text__status__name,
+.main > div > .message-block .nick,
+.main > div > chat-message-wrapper .chat-msg__user {
   font-weight: bold;
   text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
 }

@@ -1,44 +1,52 @@
-from typing import Any
-import os
+from typing import Optional, Union
+import json
 
-from aiohttp import web
+import cherrypy
 
-from common import MESSAGES, STATS
-from config import BASE_DIR, CONFIG
-from chat import Base
+from common import Base, MESSAGES, STATS
 
 
 class Server(Base):
-    names = CONFIG['base'].getlist('names')
+    def add_headers(self) -> None:
+        cherrypy.response.headers['Access-Control-Allow-Headers'] = 'x-requested-with'
+        cherrypy.response.headers['Access-Control-Allow-Method'] = 'GET'
+        cherrypy.response.headers['Access-Control-Allow-Origin'] = 'null'
 
-    async def index(self, request):
-        theme = request.query.get('theme') or 'base'
-        with open(os.path.join(BASE_DIR, f'templates/{theme}.html')) as f:
-            text = f.read(). \
-                replace('{{ names }}', "', '".join(self.names)). \
-                replace('{{ tts_api_key }}', CONFIG['base'].get('tts_api_key', ''))
-        return web.Response(text=text, content_type='text/html')
-
-    async def main(self):
-        await self.on_start()
-        app = web.Application()
-        app.add_routes([
-            web.get('/', self.index),
-            web.get('/messages', self.messages),
-            web.get('/stats', self.stats),
-            web.static('/store', os.path.join(BASE_DIR, 'store')),
-        ])
-        runner = web.AppRunner(app)
-        await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', 55555)
-        await site.start()
-
-    async def messages(self, request):
+    def messages(self, offset: Union[int, str]) -> Optional[str]:
+        self.add_headers()
+        if cherrypy.request.method == 'OPTIONS':
+            cherrypy.response.status = '204 No Content'
+            return None
+        offset = int(offset)
         total = len(MESSAGES)
-        offset = int(request.query['offset'])
         if offset > total:
             offset = 0
-        return web.json_response({'messages': MESSAGES.data[offset:], 'total': total})
+        return json.dumps({'messages': MESSAGES[offset:], 'total': total},
+                          ensure_ascii=False)
 
-    async def stats(self, request: Any) -> Any:
-        return web.json_response({'stats': STATS})
+    def run(self) -> None:
+        self.on_start()
+        cherrypy.config.update({
+            'engine.autoreload.on': False,
+            'log.access_file': '',
+            'log.error_file': '',
+            'log.screen': False,
+            'server.socket_host': '0.0.0.0',
+            'server.socket_port': 55555,
+        })
+        cherrypy.quickstart(self)
+        self.on_stop()
+
+    def stats(self) -> Optional[str]:
+        self.add_headers()
+        if cherrypy.request.method == 'OPTIONS':
+            cherrypy.response.status = '204 No Content'
+            return None
+        return json.dumps({'stats': STATS}, ensure_ascii=False)
+
+    def stop(self) -> None:
+        cherrypy.engine.exit()
+        super().stop()
+
+    messages.exposed = True
+    stats.exposed = True

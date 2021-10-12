@@ -15,13 +15,14 @@ table, caption, tbody, tfoot, thead, tr, th, td,
 article, aside, canvas, details, embed,
 figure, figcaption, footer, header, hgroup,
 menu, nav, output, ruby, section, summary,
-time, mark, audio, video {
+time, mark, audio, video, button {
   margin: 0;
   padding: 0;
   border: 0;
   font-size: 100%;
   font: inherit;
   vertical-align: baseline;
+  background: none;
 }
 /* HTML5 display-role reset for older browsers */
 article, aside, details, figcaption, figure,
@@ -47,19 +48,12 @@ table {
   border-spacing: 0;
 }
 
-.main > .e > b,
-.main > .js > b,
-.main > .m > b,
-.main > .name,
-.main > .p > b {
-  color: #de4dc6;
-}
-
 html {
   scroll-behavior: smooth;
 }
 
-img {
+img,
+svg {
   margin: 2px 0;
   max-height: calc(100vh - 8px);
   max-width: 100%;
@@ -70,6 +64,26 @@ img {
   padding: 2px 0;
 }
 
-.main > div > img:first-child {
-  width: 16px;
+.main > div > .chat-line__no-background > :nth-child(1) > :nth-child(1) > div {
+  margin-right: .5ch;
+}
+
+.main > div > .message__info__text .info__text__status__name {
+  margin-right: .5ch;
+}
+
+.main > div > .message-block .nick {
+  color: #4f98ff;
+  text-decoration: none;
+}
+.main > div > .message-block .smile-name {
+  display: none;
+}
+
+.main > div > * div {
+  display: inline-block;
+}
+
+.main > div > chat-message-wrapper .chat-msg__user {
+  color: #3992d6;
 }

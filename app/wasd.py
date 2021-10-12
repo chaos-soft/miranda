@@ -1,61 +1,43 @@
 from typing import Any
-import asyncio
-import json
 
-from chat import WebSocket
-from common import D, MESSAGES, STATS
-from config import CONFIG
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+
+import common
+
+DRIVER: Any = webdriver.Remote(desired_capabilities=DesiredCapabilities.FIREFOX)
 
 
-class WASD(WebSocket):
-    # Ping - 25 секунд, timeout - 5.
-    heartbeat: int = 20
-    jwt: str = CONFIG['wasd'].get('jwt')
-    stream: int = CONFIG['wasd'].getint('stream')
-    url: str = 'wss://chat.wasd.tv/socket.io/?EIO=3&transport=websocket'
+class Chat(common.Commands):
+    driver = DRIVER
+    element: str = '/html/body/wasd-root/div[2]/div/wasd-channel/div/div[2]/wasd-chat-wrapper/div[2]/div[2]/div/wasd-chat/div/wasd-chat-body/div/wasd-chat-messages/div/div/div'  # noqa: E501
 
-    async def add_message(self, data: D) -> None:
-        message = dict(id='w', name=data['user_login'], text=data['message'])
-        MESSAGES.append(message)
+    def process_element(self, element: Any) -> None:
+        try:
+            element = element.find_element_by_class_name('message__info__text')
+        except NoSuchElementException:
+            pass
+        super().process_element(element)
 
-    async def add_stats(self, data: D) -> None:
-        STATS['w'] = data['total']
 
-    async def add_sticker(self, data: D) -> None:
-        message = dict(id='w', name=data['user_login'], text='image0')
-        message['replacements'] = [[
-            'image0',
-            data['sticker']['sticker_image']['medium'],
-        ]]
-        MESSAGES.append(message)
+class Play(common.Play):
+    driver = DRIVER
+    element: str = '/html/body/wasd-root/div[2]/div/wasd-channel/div/div[1]/div/div[1]/div[2]/wasd-player/div/div[2]/wasd-player-component/div/div[2]/div[2]/div[2]/div/div[1]/button'  # noqa: E501
 
-    async def join_chat(self) -> None:
-        data = ['join', {
-            'channelId': self.channel,
-            'jwt': self.jwt,
-            'streamId': self.stream,
-        }]
-        await self.w.send_str(f'42{json.dumps(data)}')
+    def process_element(self, element: Any) -> None:
+        if element:
+            element.click()
 
-    async def main(self, session: Any) -> None:
-        while True:
-            if not self.channel:
-                await asyncio.sleep(5)
-                self.channel = CONFIG['wasd'].getint('channel')
-                self.jwt = CONFIG['wasd'].get('jwt')
-                self.stream = CONFIG['wasd'].getint('stream')
-                continue
-            await super().main(session)
 
-    async def on_message(self, data_str: str) -> None:
-        code = self.re_code.search(data_str).group(0)
-        if code == '40':
-            await self.join_chat()
-        elif code == '42':
-            data = json.loads(data_str.replace(code, '', 1))
-            if data[0] == 'message':
-                await self.add_message(data[1])
-            elif data[0] == 'sticker':
-                await self.add_sticker(data[1])
-            elif data[0] == 'viewers':
-                await self.add_stats(data[1])
+class Viewers(common.Viewers):
+    driver = DRIVER
+    element: str = '/html/body/wasd-root/div[2]/div/wasd-channel/div/div[1]/div/div[1]/div[1]/wasd-player-info/div/div/div/div[2]/div[2]/div/div/div[1]/div'  # noqa: E501
+    id: str = 'w'
+
+    def process_element(self, element: Any) -> None:
+        common.STATS[self.id] = ''.join(filter(str.isdigit, element.get_attribute('textContent')))
+
+
+def close_driver() -> None:
+    DRIVER.close()

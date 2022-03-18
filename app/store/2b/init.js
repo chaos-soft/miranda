@@ -36,14 +36,15 @@ class TwoBChat extends Chat {
   }
 }
 
-let chat
-
 function init () {
-  chat = new TwoBChat()
+  const chat = new TwoBChat()
+  let w
   setInterval(() => {
-    get(
-      `messages?offset=${chat.offset}`,
-      (data) => chat.core(data))
+    if (!w || w.readyState === 3) {
+      w = get(`ws://${window.location.host}/messages`, (data) => chat.core(data))
+    } else if (w.readyState === 1) {
+      w.send(JSON.stringify({ offset: chat.offset }))
+    }
   }, 5 * 1000)
 }
 

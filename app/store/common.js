@@ -1,5 +1,5 @@
 'use strict'
-/* global Global, Mustache, XMLHttpRequest */
+/* global Global, Mustache, WebSocket */
 
 class Chat {
   constructor () {
@@ -18,6 +18,7 @@ class Chat {
   }
 
   core (data) {
+    this.refreshStats(data)
     this.offset = data.total
     if (!data.messages.length) {
       this.emptyData()
@@ -65,6 +66,9 @@ class Chat {
         return true
       }
     }
+  }
+
+  refreshStats () {
   }
 
   render (data) {
@@ -177,18 +181,14 @@ class Message {
 }
 
 function get (url, callbackSuccess, callbackError) {
-  const xhr = new XMLHttpRequest()
-  xhr.addEventListener('load', () => {
-    if (xhr.status === 200) {
-      callbackSuccess(JSON.parse(xhr.responseText))
-    }
-  })
-  xhr.addEventListener('error', () => {
+  const w = new WebSocket(url)
+  w.addEventListener('close', () => {
     if (callbackError) {
       callbackError()
     }
   })
-  xhr.open('GET', url, true)
-  xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest')
-  xhr.send()
+  w.addEventListener('message', (e) => {
+    callbackSuccess(JSON.parse(e.data))
+  })
+  return w
 }

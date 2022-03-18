@@ -1,11 +1,14 @@
-from typing import Any
 import os
 
 from aiohttp import web
+import aiohttp
 
+from chat import Base
 from common import MESSAGES, STATS
 from config import BASE_DIR, CONFIG
-from chat import Base
+from json_ import INSTANCEK as json
+
+json.types_load = {'offset': int}
 
 
 class Server(Base):
@@ -25,7 +28,6 @@ class Server(Base):
         app.add_routes([
             web.get('/', self.index),
             web.get('/messages', self.messages),
-            web.get('/stats', self.stats),
             web.static('/store', os.path.join(BASE_DIR, 'store')),
         ])
         runner = web.AppRunner(app)
@@ -34,11 +36,18 @@ class Server(Base):
         await site.start()
 
     async def messages(self, request):
-        total = len(MESSAGES)
-        offset = int(request.query['offset'])
-        if offset > total:
-            offset = 0
-        return web.json_response({'messages': MESSAGES.data[offset:], 'total': total})
-
-    async def stats(self, request: Any) -> Any:
-        return web.json_response({'stats': STATS})
+        w = web.WebSocketResponse()
+        await w.prepare(request)
+        async for message in w:
+            if message.type == aiohttp.WSMsgType.TEXT:
+                data = json.loads(message.data)
+                offset = data.get('offset', 0)
+                total = len(MESSAGES)
+                if offset > total:
+                    offset = 0
+                await w.send_json({
+                    'messages': MESSAGES.data[offset:],
+                    'stats': STATS,
+                    'total': total,
+                }, dumps=json.dumps)
+        return w

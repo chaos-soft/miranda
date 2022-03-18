@@ -77,14 +77,19 @@ let tts
 
 function init () {
   chat = new BaseChat()
+  let w
   setInterval(() => {
-    get(
-      `messages?offset=${chat.offset}`,
-      (data) => chat.core(data),
-      () => chat.error())
+    if (!w || w.readyState === 3) {
+      w = get(
+        `ws://${window.location.host}/messages`,
+        (data) => chat.core(data),
+        () => chat.error()
+      )
+    } else if (w.readyState === 1) {
+      w.send(JSON.stringify({ offset: chat.offset }))
+    }
   }, 5 * 1000)
   setInterval(() => chat.scroll(), 1000)
-  setInterval(() => get('stats', (data) => chat.refreshStats(data)), 60 * 1000)
   tts = new Tts()
   setInterval(() => tts.worker(), 1000)
 }

@@ -1,15 +1,16 @@
 a,
 body {
-  color: black;
+  color: #eceff4;
   font: bold 18px/22px sans-serif;
 }
 
-html {
-  background: white;
+html,
+.panel {
+  background: #2e3440;
 }
 
 .main {
-  margin-top: 34px;
+  margin-top: 36px;
   overflow: hidden;
 }
 
@@ -20,8 +21,7 @@ html {
 }
 
 .panel {
-  background-color: black;
-  color: white;
+  border-bottom: 2px solid #4c566a;
   display: flex;
   font: 14px/24px sans-serif;
   justify-content: center;
@@ -49,11 +49,11 @@ html {
 }
 
 .wrapper {
-  margin-left: 10px;
-  margin-right: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
-@media (min-width: 960px) {
+@media (min-width: 380px) {
   a,
   body {
     font: normal 14px/18px sans-serif;

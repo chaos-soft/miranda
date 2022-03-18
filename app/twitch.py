@@ -6,14 +6,13 @@ from common import make_request, MESSAGES, STATS
 from config import CONFIG
 import aiohttp
 
-HEADERS = {
-    'Client-ID': 'g0qvsrztagks1lbg03kwnt67pg9x8a5',
-    'Authorization': 'Bearer 7efez7cxjfvsuaxnn7dwp7q5nnrst6',
+HEADERS: dict[str, str] = {
+    'Client-ID': 'l0sytxv7tot9ynjakkx4o6ddlpn6qp',
+    'Authorization': 'Bearer ev4fay8ainj1hw23cbddjhkqt1vtb6',
 }
-TIMEOUT = aiohttp.ClientTimeout(total=10)
+TIMEOUT: aiohttp.ClientTimeout = aiohttp.ClientTimeout(total=10)
 
-FOLLOWS = {}
-HOSTS = []
+FOLLOWS: dict[str, int] = {}
 
 TIMEOUT_ERROR: int = 60 * 10
 TIMEOUT_NEXT: int = 5

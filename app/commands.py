@@ -90,7 +90,6 @@ class Commands(Base):
         await self.add_test_messages_t()
         await self.add_test_messages_g()
         await self.add_test_messages_s()
-        await self.add_test_messages_y()
         await self.add_test_messages_p()
 
     async def add_test_messages_t(self):
@@ -118,19 +117,14 @@ class Commands(Base):
         MESSAGES.append(message.copy())
 
     async def add_test_messages_s(self):
-        message = dict(id='s', name='xxx', text='-t от xxx')
+        message = dict(id='g', name='xxx', text='-t от xxx')
         MESSAGES.append(message.copy())
         message['text'] = '-i https://gals.kindgirls.com/d009/ariel_09328/ariel_09328_8.jpg'
+        MESSAGES.append(message.copy())
+        message['name'] = 'xxx_timestamp'
+        message['timestamp'] = datetime.now().timestamp() - 28 * 24 * 60 * 60
         MESSAGES.append(message.copy())
         message['text'] = '@chaos обращение'
-        MESSAGES.append(message.copy())
-        message['text'] = ':frog: :uuu: :rainbowfrog:'
-        MESSAGES.append(message.copy())
-
-    async def add_test_messages_y(self):
-        message = dict(id='y', name='xxx_timestamp')
-        message['text'] = '-i https://gals.kindgirls.com/d009/ariel_09328/ariel_09328_8.jpg'
-        message['timestamp'] = datetime.now().timestamp() - 28 * 24 * 60 * 60
         MESSAGES.append(message.copy())
 
     async def add_test_messages_p(self):

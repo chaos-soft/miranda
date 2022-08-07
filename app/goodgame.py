@@ -26,7 +26,7 @@ class GoodGame(WebSocket):
         MESSAGES.append(dict(id='e', text=text))
 
     async def add_stats(self, data: D) -> None:
-        STATS['g'] = f'{data["users_in_channel"]}, {data["clients_in_channel"]}'
+        STATS['g'] = f"{data['clients_in_channel']}, {data['users_in_channel']}"
 
     async def on_message(self, data_str: str) -> None:
         data = json.loads(data_str)

@@ -8,7 +8,7 @@ import aiohttp
 
 HEADERS: dict[str, str] = {
     'Client-ID': 'l0sytxv7tot9ynjakkx4o6ddlpn6qp',
-    'Authorization': 'Bearer ev4fay8ainj1hw23cbddjhkqt1vtb6',
+    'Authorization': 'Bearer wue57wwtmk59qpnz2gi8fkufvx9lrz',
 }
 TIMEOUT: aiohttp.ClientTimeout = aiohttp.ClientTimeout(total=10)
 

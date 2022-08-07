@@ -3,21 +3,48 @@
 
 class Chat {
   constructor () {
-    this.icons = { g: 'g.png', s: 's.ico', t: 't.ico', w: 'w.png', y: 'y.png' }
+    this.icons = { g: 'g.png', t: 't.ico', w: 'w.png' }
     this.isClean = false
     this.isScroll = true
-    this.main = document.getElementsByClassName('main')[0]
+    this.main_ = document.getElementsByClassName('main')[0]
     this.messages = document.getElementById('messages').innerHTML
     this.offset = 0
     this.systemIds = ['e', 'm', 'p']
+    this.url = 'ws://localhost:55555'
+    this.url = `wss://${window.location.host}/miranda/`
   }
 
   clean () {
     this.isClean = false
-    this.main.querySelectorAll(':scope > div').forEach((div) => div.remove())
+    this.main_.querySelectorAll(':scope > div').forEach((div) => div.remove())
   }
 
-  core (data) {
+  emptyData () {
+  }
+
+  error () {
+  }
+
+  init () {
+    const w = new WebSocket(this.url)
+    w.addEventListener('close', () => {
+      clearInterval(interval)
+      this.error()
+      setTimeout(() => {
+        this.init()
+      }, 5 * 1000)
+    })
+    w.addEventListener('message', (e) => {
+      this.main(JSON.parse(e.data))
+    })
+    const interval = setInterval(() => {
+      if (w.readyState === w.OPEN) {
+        w.send(JSON.stringify({ offset: this.offset }))
+      }
+    }, 5 * 1000)
+  }
+
+  main (data) {
     this.refreshStats(data)
     this.offset = data.total
     if (!data.messages.length) {
@@ -33,13 +60,10 @@ class Chat {
     this.postLoop()
   }
 
-  emptyData () {
+  postLoop () {
   }
 
   preLoop () {
-  }
-
-  postLoop () {
   }
 
   processMessage (message) {
@@ -72,12 +96,12 @@ class Chat {
   }
 
   render (data) {
-    this.main.insertAdjacentHTML('beforeend', Mustache.render(this.messages, data))
+    this.main_.insertAdjacentHTML('beforeend', Mustache.render(this.messages, data))
   }
 
   scroll () {
     if (this.isScroll) {
-      const main = this.main.offsetTop + this.main.scrollHeight
+      const main = this.main_.offsetTop + this.main_.scrollHeight
       const window_ = window.innerHeight + window.scrollY
       if (main !== window_) {
         window.scroll(0, main)
@@ -132,19 +156,6 @@ class Message {
     }
   }
 
-  prepareS () {
-    const m = this.message.text.match(this.reSmile)
-    if (m) {
-      m.forEach((replacement) => {
-        const smileName = replacement.slice(1, -1)
-        this.replacements.push([
-          replacement,
-          `https://sc2tv.ru/images/smiles/${smileName}.png`
-        ])
-      })
-    }
-  }
-
   prepareT () {
     for (const r of this.replacements) {
       if (r.length === 2) {
@@ -171,24 +182,9 @@ class Message {
   replace () {
     if (this.message.id === 'g') {
       this.prepareG()
-    } else if (this.message.id === 's') {
-      this.prepareS()
     } else if (this.message.id === 't') {
       this.prepareT()
     }
     this.replace_()
   }
-}
-
-function get (url, callbackSuccess, callbackError) {
-  const w = new WebSocket(url)
-  w.addEventListener('close', () => {
-    if (callbackError) {
-      callbackError()
-    }
-  })
-  w.addEventListener('message', (e) => {
-    callbackSuccess(JSON.parse(e.data))
-  })
-  return w
 }

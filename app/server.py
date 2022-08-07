@@ -5,7 +5,7 @@ import aiohttp
 
 from chat import Base
 from common import MESSAGES, STATS
-from config import BASE_DIR, CONFIG
+from config import CONFIG
 from json_ import INSTANCEK as json
 
 json.types_load = {'offset': int}
@@ -13,22 +13,13 @@ json.types_load = {'offset': int}
 
 class Server(Base):
     names = CONFIG['base'].getlist('names')
-
-    async def index(self, request):
-        theme = request.query.get('theme') or 'base'
-        with open(os.path.join(BASE_DIR, f'templates/{theme}.html')) as f:
-            text = f.read(). \
-                replace('{{ names }}', "', '".join(self.names)). \
-                replace('{{ tts_api_key }}', CONFIG['base'].get('tts_api_key', ''))
-        return web.Response(text=text, content_type='text/html')
+    tts_api_key = CONFIG['base'].get('tts_api_key')
 
     async def main(self):
         await self.on_start()
         app = web.Application()
         app.add_routes([
-            web.get('/', self.index),
-            web.get('/messages', self.messages),
-            web.static('/store', os.path.join(BASE_DIR, 'store')),
+            web.get('/', self.messages),
         ])
         runner = web.AppRunner(app)
         await runner.setup()
@@ -47,7 +38,9 @@ class Server(Base):
                     offset = 0
                 await w.send_json({
                     'messages': MESSAGES.data[offset:],
+                    'names': self.names,
                     'stats': STATS,
                     'total': total,
+                    'tts_api_key': self.tts_api_key,
                 }, dumps=json.dumps)
         return w

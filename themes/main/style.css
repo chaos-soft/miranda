@@ -53,7 +53,7 @@ html,
   padding-right: 10px;
 }
 
-@media (min-width: 380px) {
+@media (min-width: 300px) {
   a,
   body {
     font: normal 14px/18px sans-serif;

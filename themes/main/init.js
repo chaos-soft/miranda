@@ -1,11 +1,13 @@
 'use strict'
-/* global Chat, get, names, ya */
+/* global Chat, ya */
 
-class BaseChat extends Chat {
+class MainChat extends Chat {
   constructor () {
     super()
+    this.names = null
     this.scrollElement = document.getElementById('scroll')
     this.scrollElement.addEventListener('click', () => this.startScroll())
+    this.tts = null
   }
 
   error () {
@@ -20,7 +22,7 @@ class BaseChat extends Chat {
   processMessage (message) {
     super.processMessage(message)
     if (message.id in this.icons) {
-      names.every((name) => {
+      this.names.every((name) => {
         if (message.text.search(name) !== -1) {
           message.classes.push('name')
           return false
@@ -28,13 +30,21 @@ class BaseChat extends Chat {
       })
     }
     if (message.id === 'tts') {
-      tts.push(message.text)
+      this.tts.push(message.text)
     }
   }
 
   refreshStats (data) {
     for (const k in data.stats) {
       document.getElementById(k).textContent = data.stats[k]
+    }
+    if (!this.names) {
+      this.names = data.names
+    }
+    if (!this.tts) {
+      ya.speechkit.settings.apikey = data.tts_api_key
+      this.tts = new Tts()
+      setInterval(() => this.tts.worker(), 1000)
     }
   }
 
@@ -73,28 +83,14 @@ class Tts extends Array {
 }
 
 let chat
-let tts
 
-function init () {
-  chat = new BaseChat()
-  let w
-  setInterval(() => {
-    if (!w || w.readyState === 3) {
-      w = get(
-        `ws://${window.location.host}/messages`,
-        (data) => chat.core(data),
-        () => chat.error()
-      )
-    } else if (w.readyState === 1) {
-      w.send(JSON.stringify({ offset: chat.offset }))
-    }
-  }, 5 * 1000)
+function main () {
+  chat = new MainChat()
+  chat.init()
   setInterval(() => chat.scroll(), 1000)
-  tts = new Tts()
-  setInterval(() => tts.worker(), 1000)
 }
 
-document.addEventListener('DOMContentLoaded', () => init())
+document.addEventListener('DOMContentLoaded', () => main())
 document.addEventListener('keydown', (e) => {
   if (['PageUp', 'Home', 'ArrowUp'].indexOf(e.key) !== -1) {
     chat.stopScroll()

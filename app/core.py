@@ -21,12 +21,6 @@ async def main() -> None:
             import goodgame
             for channel in CONFIG['goodgame'].getlist('channels'):
                 TASKS.append(asyncio.create_task(goodgame.GoodGame(channel).main(session)))
-        if 'peka2tv' in CONFIG:
-            import peka2tv
-            for channel in CONFIG['peka2tv'].getlist('channels'):
-                p = peka2tv.Peka2tv(channel)
-                TASKS.append(asyncio.create_task(p.main(session)))
-                TASKS.append(asyncio.create_task(p.send_heartbeat()))
         if 'twitch' in CONFIG:
             import twitch
             channels = CONFIG['twitch'].getlist('channels')

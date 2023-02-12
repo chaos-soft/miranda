@@ -47,4 +47,4 @@ class GoodGame(WebSocket):
             },
             'type': 'join',
         }
-        await self.w.send_str(json.dumps(data))
+        await self.w.send(json.dumps(data))

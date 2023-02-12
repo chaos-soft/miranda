@@ -22,14 +22,13 @@ class MainChat extends Chat {
   processMessage (message) {
     super.processMessage(message)
     if (message.id in this.icons) {
-      this.names.every((name) => {
+      this.names.forEach((name) => {
         if (message.text.search(name) !== -1) {
           message.classes.push('name')
-          return false
         }
       })
     }
-    if (message.id === 'tts') {
+    if (this.tts && message.id === 'tts') {
       this.tts.push(message.text)
     }
   }
@@ -41,7 +40,7 @@ class MainChat extends Chat {
     if (!this.names) {
       this.names = data.names
     }
-    if (!this.tts) {
+    if (!this.tts && data.tts_api_key) {
       ya.speechkit.settings.apikey = data.tts_api_key
       this.tts = new Tts()
       setInterval(() => this.tts.worker(), 1000)

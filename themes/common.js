@@ -3,7 +3,7 @@
 
 class Chat {
   constructor () {
-    this.icons = { g: 'g.png', t: 't.ico', w: 'w.png' }
+    this.icons = { g: 'g.png', s: 's.ico', t: 't.ico', w: 'w.png' }
     this.isClean = false
     this.isScroll = true
     this.main_ = document.getElementsByClassName('main')[0]
@@ -117,41 +117,45 @@ class Message {
     this.reSmile = /:\w+:/gi
   }
 
+  addReplacement (replacement, smileName, smiles) {
+    return smiles.some((smile) => {
+      if (smile.name === smileName) {
+        this.replacements.push([
+          replacement,
+          smile.animated ? smile.img_gif : smile.img_big
+        ])
+        return true
+      }
+      return false
+    })
+  }
+
   prepareG () {
     const m = this.message.text.match(this.reSmile)
     if (m) {
       m.forEach((replacement) => {
         const smileName = replacement.slice(1, -1)
-        let isFound = false
-        Global.Smiles.some((smile) => {
-          if (smile.name === smileName) {
-            this.replacements.push([
-              replacement,
-              smile.animated ? smile.img_gif : smile.img_big
-            ])
-            isFound = true
-            return true
-          }
-        })
+        const isFound = this.addReplacement(replacement, smileName, Global.Smiles)
         if (!isFound) {
-          this.message.premiums.some((id) => {
+          this.message.premiums.forEach((id) => {
             if (id in Global.Channel_Smiles) {
-              Global.Channel_Smiles[id].some((smile) => {
-                if (smile.name === smileName) {
-                  this.replacements.push([
-                    replacement,
-                    smile.animated ? smile.img_gif : smile.img_big
-                  ])
-                  isFound = true
-                  return true
-                }
-              })
-              if (isFound) {
-                return true
-              }
+              this.addReplacement(replacement, smileName, Global.Channel_Smiles[id])
             }
           })
         }
+      })
+    }
+  }
+
+  prepareS () {
+    const m = this.message.text.match(this.reSmile)
+    if (m) {
+      m.forEach((replacement) => {
+        const smileName = replacement.slice(1, -1)
+        this.replacements.push([
+          replacement,
+          `https://sc2tv.ru/images/smiles/${smileName}.png`
+        ])
       })
     }
   }
@@ -182,6 +186,8 @@ class Message {
   replace () {
     if (this.message.id === 'g') {
       this.prepareG()
+    } else if (this.message.id === 's') {
+      this.prepareS()
     } else if (this.message.id === 't') {
       this.prepareT()
     }

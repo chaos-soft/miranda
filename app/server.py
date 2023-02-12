@@ -1,7 +1,7 @@
-import os
+from typing import Any
+import asyncio
 
-from aiohttp import web
-import aiohttp
+import websockets
 
 from chat import Base
 from common import MESSAGES, STATS
@@ -12,35 +12,32 @@ json.types_load = {'offset': int}
 
 
 class Server(Base):
-    names = CONFIG['base'].getlist('names')
-    tts_api_key = CONFIG['base'].get('tts_api_key')
+    names: list[str] = CONFIG['base'].getlist('names')
+    tts_api_key: str = CONFIG['base'].get('tts_api_key')
 
-    async def main(self):
-        await self.on_start()
-        app = web.Application()
-        app.add_routes([
-            web.get('/', self.messages),
-        ])
-        runner = web.AppRunner(app)
-        await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', 55555)
-        await site.start()
+    async def main(self) -> None:
+        try:
+            await self.on_start()
+            async with websockets.serve(self.messages, '0.0.0.0', 55555):
+                await asyncio.Future()
+        except asyncio.CancelledError:
+            await self.on_close()
+            raise
 
-    async def messages(self, request):
-        w = web.WebSocketResponse()
-        await w.prepare(request)
-        async for message in w:
-            if message.type == aiohttp.WSMsgType.TEXT:
-                data = json.loads(message.data)
+    async def messages(self, websocket: Any) -> None:
+        try:
+            async for message in websocket:
+                data = json.loads(message)
                 offset = data.get('offset', 0)
                 total = len(MESSAGES)
                 if offset > total:
                     offset = 0
-                await w.send_json({
+                await websocket.send(json.dumps({
                     'messages': MESSAGES.data[offset:],
                     'names': self.names,
                     'stats': STATS,
                     'total': total,
                     'tts_api_key': self.tts_api_key,
-                }, dumps=json.dumps)
-        return w
+                }))
+        except websockets.exceptions.ConnectionClosedError as e:
+            await self.print_exception(e)

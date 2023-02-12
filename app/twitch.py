@@ -1,14 +1,14 @@
 from datetime import datetime
 import asyncio
 
-from chat import Chat
-from common import make_request, MESSAGES, STATS
+from chat import Chat, WebSocket
+from common import make_request, MESSAGES, STATS, D
 from config import CONFIG
 import aiohttp
 
 HEADERS: dict[str, str] = {
     'Client-ID': 'l0sytxv7tot9ynjakkx4o6ddlpn6qp',
-    'Authorization': 'Bearer wue57wwtmk59qpnz2gi8fkufvx9lrz',
+    'Authorization': 'Bearer 5qiw0ksq5eg8m45f87l2k8mgh8eq9k',
 }
 TIMEOUT: aiohttp.ClientTimeout = aiohttp.ClientTimeout(total=10)
 
@@ -20,46 +20,34 @@ TIMEOUT_STATS: int = 60
 TIMEOUT_SUCCESS: int = 60 * 5
 
 
-class Twitch(Chat):
-    text = CONFIG['twitch'].getlist('text')[0]
-    keys = ['color', 'emotes', 'display-name', 'user-id', 'system-msg']
+class Twitch(WebSocket):
+    keys: list[str] = ['color', 'emotes', 'display-name', 'user-id', 'system-msg']
+    text: str = CONFIG['twitch'].getlist('text')[0]
+    url: str = 'wss://irc-ws.chat.twitch.tv'
 
-    async def main(self, session):
-        while True:
-            await self.on_start()
-            async with session.ws_connect('wss://irc-ws.chat.twitch.tv') as w:
-                await self.on_open(w)
-                async for message in w:
-                    if message.type == aiohttp.WSMsgType.TEXT:
-                        await self.on_message(message.data.rstrip(), w)
-                    elif message.type == aiohttp.WSMsgType.ERROR:
-                        break
-                await w.close()
-            await self.on_close()
-
-    async def on_open(self, w):
+    async def on_open(self) -> None:
         # PASS и NICK именно в таком порядке.
-        await w.send_str('PASS oauth:deaqfawg5sxy356nijwcms3r9qtkye\r\n')
-        await w.send_str('NICK miranda_app\r\n')
-        await w.send_str('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n')
-        await w.send_str(f'JOIN #{self.channel}\r\n')
+        await self.w.send('PASS oauth:deaqfawg5sxy356nijwcms3r9qtkye\r\n')
+        await self.w.send('NICK miranda_app\r\n')
+        await self.w.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n')
+        await self.w.send(f'JOIN #{self.channel}\r\n')
 
-    async def on_message(self, data, w):
+    async def on_message(self, data: str) -> None:
         if 'PRIVMSG' in data:
             await self.add_message(await self.parse_data(data))
         elif 'USERNOTICE' in data:
             await self.add_notify(await self.parse_data(data))
         elif data.startswith('PING'):
-            await self.send_pong(data, w)
+            await self.send_pong(data)
 
-    async def send_pong(self, data, w):
-        await w.send_str(f'{data.replace("PING", "PONG")}\r\n')
+    async def send_pong(self, data: str) -> None:
+        await self.w.send(f'{data.replace("PING", "PONG")}\r\n')
 
-    async def add_notify(self, message):
+    async def add_notify(self, message: D) -> None:
         text = self.text.format(message['system-msg'].replace(r'\s', ' '))
         MESSAGES.append(dict(id='e', text=text))
 
-    async def parse_data(self, data):
+    async def parse_data(self, data: str) -> D:
         parts = data.split(' ', 4)
         message = {}
         if len(parts) == 5:
@@ -70,7 +58,7 @@ class Twitch(Chat):
                 message[k] = v
         return message
 
-    async def add_message(self, message):
+    async def add_message(self, message: D) -> None:
         message['id'] = 't'
         if message['user-id'] in FOLLOWS:
             message['timestamp'] = FOLLOWS[message['user-id']]
@@ -79,11 +67,11 @@ class Twitch(Chat):
         await self.parse_emotes(message)
         MESSAGES.append(message)
 
-    async def clean_text(self, text):
+    async def clean_text(self, text: str) -> str:
         """Очищает от /me."""
         return text[8:-1] if text.startswith('\x01') else text
 
-    async def parse_emotes(self, message):
+    async def parse_emotes(self, message: D) -> None:
         if 'emotes' not in message:
             return None
         message['replacements'] = []
@@ -102,10 +90,10 @@ class Twitch(Chat):
             del r[2]
 
 
-channel_id = None
+channel_id: str = ''
 
 
-async def get_channel_id(channel):
+async def get_channel_id(channel: str) -> None:
     # https://dev.twitch.tv/docs/api/reference/#get-users
     url = f'https://api.twitch.tv/helix/users?login={channel}'
     global channel_id
@@ -118,13 +106,13 @@ async def get_channel_id(channel):
 
 
 class TwitchFollows(Chat):
-    is_first_run = True
-    params = {'first': 100, 'to_id': None}
+    is_first_run: bool = True
+    params: D = {'first': 100, 'to_id': None}
     # https://dev.twitch.tv/docs/api/reference/#get-users-follows
-    url = 'https://api.twitch.tv/helix/users/follows'
-    text = CONFIG['twitch'].getlist('text')[1]
+    url: str = 'https://api.twitch.tv/helix/users/follows'
+    text: str = CONFIG['twitch'].getlist('text')[1]
 
-    async def main(self):
+    async def main(self) -> None:
         while True:
             if channel_id:
                 self.params['to_id'] = channel_id
@@ -133,7 +121,7 @@ class TwitchFollows(Chat):
                 sleep = TIMEOUT_NEXT
             await asyncio.sleep(sleep)
 
-    async def load(self):
+    async def load(self) -> int:
         data = await make_request(self.url, params=self.params, timeout=TIMEOUT,
                                   headers=HEADERS)
         if not data:
@@ -163,7 +151,7 @@ class TwitchFollows(Chat):
             await self.print_error(f'запущен ({len(FOLLOWS)})')
             return TIMEOUT_SUCCESS
 
-    async def alert(self, follows):
+    async def alert(self, follows: list[str]) -> None:
         # https://dev.twitch.tv/docs/api/reference/#get-users
         url = f'https://api.twitch.tv/helix/users?id={"&id=".join(follows)}'
         data = await make_request(url, retries=2, timeout=TIMEOUT, headers=HEADERS)
@@ -175,19 +163,23 @@ class TwitchFollows(Chat):
 
 
 class TwitchStats(Chat):
-    url = 'https://api.twitch.tv/helix/streams?user_login={}&first=1'
+    url: str = 'https://api.twitch.tv/helix/streams?user_login={}&first=1'
 
     async def alert(self, v: str) -> None:
         STATS['t'] = v
 
-    async def load(self):
+    async def load(self) -> None:
         data = await make_request(self.url, timeout=TIMEOUT, headers=HEADERS)
         if data:
             await self.alert(data['data'][0]['viewer_count'] if data['data'] else '-')
 
-    async def main(self):
-        await self.on_start()
-        self.url = self.url.format(self.channel)
-        while True:
-            await self.load()
-            await asyncio.sleep(TIMEOUT_STATS)
+    async def main(self) -> None:
+        try:
+            await self.on_start()
+            self.url = self.url.format(self.channel)
+            while True:
+                await self.load()
+                await asyncio.sleep(TIMEOUT_STATS)
+        except asyncio.CancelledError:
+            await self.on_close()
+            raise

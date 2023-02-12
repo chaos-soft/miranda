@@ -14,10 +14,20 @@ html,
   overflow: hidden;
 }
 
+.main > div {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
 .main > div > b {
   color: #3992d6;
   font-weight: bold;
   text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+}
+
+.main > .name {
+  background-color: #4c566a;
+  border-radius: 4px;
 }
 
 .panel {
@@ -46,11 +56,6 @@ html,
 
 .panel > div > img {
   vertical-align: -4px;
-}
-
-.wrapper {
-  padding-left: 10px;
-  padding-right: 10px;
 }
 
 @media (min-width: 300px) {

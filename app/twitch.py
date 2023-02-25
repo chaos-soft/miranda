@@ -1,14 +1,19 @@
 from datetime import datetime
 import asyncio
+import json
+import os
 
 from chat import Chat, WebSocket
 from common import make_request, MESSAGES, STATS, D
-from config import CONFIG
+from config import CONFIG, BASE_DIR
 import aiohttp
+
+with open(os.path.join(BASE_DIR, 'twitch.json')) as f:
+    data = json.load(f)
 
 HEADERS: dict[str, str] = {
     'Client-ID': 'l0sytxv7tot9ynjakkx4o6ddlpn6qp',
-    'Authorization': 'Bearer 5qiw0ksq5eg8m45f87l2k8mgh8eq9k',
+    'Authorization': f'Bearer {data["access_token"]}',
 }
 TIMEOUT: aiohttp.ClientTimeout = aiohttp.ClientTimeout(total=10)
 

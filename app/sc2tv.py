@@ -4,7 +4,7 @@ from chat import WebSocket
 from common import D, MESSAGES
 
 
-class Peka2tv(WebSocket):
+class Sc2tv(WebSocket):
     # Ping - 30 секунд, timeout - 60.
     heartbeat: int = 25
     url: str = 'wss://chat.sc2tv.ru'
@@ -19,7 +19,7 @@ class Peka2tv(WebSocket):
 
     async def join_chat(self) -> None:
         data = ['/chat/join', {'channel': f'stream/{self.channel}'}]
-        await self.w.send_str(f'421{json.dumps(data)}')
+        await self.w.send(f'421{json.dumps(data)}')
 
     async def on_message(self, data_str: str) -> None:
         code = self.re_code.search(data_str).group(0)

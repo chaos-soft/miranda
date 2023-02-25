@@ -1,5 +1,5 @@
 'use strict'
-/* global Chat, get */
+/* global Chat */
 
 class TwoBChat extends Chat {
   constructor () {
@@ -18,14 +18,14 @@ class TwoBChat extends Chat {
 
   postLoop () {
     setTimeout(() => {
-      for (const div of this.main.querySelectorAll(':scope > .o0')) {
+      for (const div of this.main_.querySelectorAll(':scope > .o0')) {
         div.classList.remove('o0')
       }
     }, 100)
   }
 
   removeMessages () {
-    for (const div of this.main.querySelectorAll(':scope > div')) {
+    for (const div of this.main_.querySelectorAll(':scope > div')) {
       if (div.classList.contains('remove')) {
         div.remove()
       } else {
@@ -36,15 +36,4 @@ class TwoBChat extends Chat {
   }
 }
 
-let chat
-
-function init () {
-  chat = new TwoBChat()
-  setInterval(() => {
-    get(
-      `messages?offset=${chat.offset}`,
-      (data) => chat.core(data))
-  }, 5 * 1000)
-}
-
-document.addEventListener('DOMContentLoaded', () => init())
+document.addEventListener('DOMContentLoaded', () => new TwoBChat().init())

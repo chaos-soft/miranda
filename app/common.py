@@ -37,8 +37,8 @@ async def make_request(
             async with aiohttp.request(method, url, **kwargs) as r:
                 assert r.status == 200
                 return await r.json()
-        except AssertionError:
-            await print_error(f'AssertionError: {url} ({r.status})')
+        except Exception as e:
+            await print_error(f'{type(e).__name__}: {url}')
             retries -= 1
             if retries:
                 await asyncio.sleep(sleep)

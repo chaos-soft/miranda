@@ -1,44 +1,43 @@
 from typing import Any
-import os
+import asyncio
 
-from aiohttp import web
+import websockets
 
-from common import MESSAGES, STATS
-from config import BASE_DIR, CONFIG
 from chat import Base
+from common import MESSAGES, STATS
+from config import CONFIG
+from json_ import INSTANCEK as json
+
+json.types_load = {'offset': int}
 
 
 class Server(Base):
-    names = CONFIG['base'].getlist('names')
+    names: list[str] = CONFIG['base'].getlist('names')
+    tts_api_key: str = CONFIG['base'].get('tts_api_key')
 
-    async def index(self, request):
-        theme = request.query.get('theme') or 'base'
-        with open(os.path.join(BASE_DIR, f'templates/{theme}.html')) as f:
-            text = f.read(). \
-                replace('{{ names }}', "', '".join(self.names)). \
-                replace('{{ tts_api_key }}', CONFIG['base'].get('tts_api_key', ''))
-        return web.Response(text=text, content_type='text/html')
+    async def main(self) -> None:
+        try:
+            await self.on_start()
+            async with websockets.serve(self.messages, '0.0.0.0', 55555):
+                await asyncio.Future()
+        except asyncio.CancelledError:
+            await self.on_close()
+            raise
 
-    async def main(self):
-        await self.on_start()
-        app = web.Application()
-        app.add_routes([
-            web.get('/', self.index),
-            web.get('/messages', self.messages),
-            web.get('/stats', self.stats),
-            web.static('/store', os.path.join(BASE_DIR, 'store')),
-        ])
-        runner = web.AppRunner(app)
-        await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', 55555)
-        await site.start()
-
-    async def messages(self, request):
-        total = len(MESSAGES)
-        offset = int(request.query['offset'])
-        if offset > total:
-            offset = 0
-        return web.json_response({'messages': MESSAGES.data[offset:], 'total': total})
-
-    async def stats(self, request: Any) -> Any:
-        return web.json_response({'stats': STATS})
+    async def messages(self, websocket: Any) -> None:
+        try:
+            async for message in websocket:
+                data = json.loads(message)
+                offset = data.get('offset', 0)
+                total = len(MESSAGES)
+                if offset > total:
+                    offset = 0
+                await websocket.send(json.dumps({
+                    'messages': MESSAGES.data[offset:],
+                    'names': self.names,
+                    'stats': STATS,
+                    'total': total,
+                    'tts_api_key': self.tts_api_key,
+                }))
+        except websockets.exceptions.ConnectionClosedError as e:
+            await self.print_exception(e)

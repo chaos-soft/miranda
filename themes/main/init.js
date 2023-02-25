@@ -1,11 +1,13 @@
 'use strict'
-/* global Chat, get, names, ya */
+/* global Chat, ya */
 
-class BaseChat extends Chat {
+class MainChat extends Chat {
   constructor () {
     super()
+    this.names = null
     this.scrollElement = document.getElementById('scroll')
     this.scrollElement.addEventListener('click', () => this.startScroll())
+    this.tts = null
   }
 
   error () {
@@ -20,21 +22,28 @@ class BaseChat extends Chat {
   processMessage (message) {
     super.processMessage(message)
     if (message.id in this.icons) {
-      names.every((name) => {
+      this.names.forEach((name) => {
         if (message.text.search(name) !== -1) {
           message.classes.push('name')
-          return false
         }
       })
     }
-    if (message.id === 'tts') {
-      tts.push(message.text)
+    if (this.tts && message.id === 'tts') {
+      this.tts.push(message.text)
     }
   }
 
   refreshStats (data) {
     for (const k in data.stats) {
       document.getElementById(k).textContent = data.stats[k]
+    }
+    if (!this.names) {
+      this.names = data.names
+    }
+    if (!this.tts && data.tts_api_key) {
+      ya.speechkit.settings.apikey = data.tts_api_key
+      this.tts = new Tts()
+      setInterval(() => this.tts.worker(), 1000)
     }
   }
 
@@ -73,23 +82,14 @@ class Tts extends Array {
 }
 
 let chat
-let tts
 
-function init () {
-  chat = new BaseChat()
-  setInterval(() => {
-    get(
-      `messages?offset=${chat.offset}`,
-      (data) => chat.core(data),
-      () => chat.error())
-  }, 5 * 1000)
+function main () {
+  chat = new MainChat()
+  chat.init()
   setInterval(() => chat.scroll(), 1000)
-  setInterval(() => get('stats', (data) => chat.refreshStats(data)), 60 * 1000)
-  tts = new Tts()
-  setInterval(() => tts.worker(), 1000)
 }
 
-document.addEventListener('DOMContentLoaded', () => init())
+document.addEventListener('DOMContentLoaded', () => main())
 document.addEventListener('keydown', (e) => {
   if (['PageUp', 'Home', 'ArrowUp'].indexOf(e.key) !== -1) {
     chat.stopScroll()

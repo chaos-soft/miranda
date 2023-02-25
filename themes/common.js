@@ -1,23 +1,51 @@
 'use strict'
-/* global Global, Mustache, XMLHttpRequest */
+/* global Global, Mustache, WebSocket */
 
 class Chat {
   constructor () {
-    this.icons = { g: 'g.png', s: 's.ico', t: 't.ico', w: 'w.png', y: 'y.png' }
+    this.icons = { g: 'g.png', s: 's.ico', t: 't.ico', w: 'w.png' }
     this.isClean = false
     this.isScroll = true
-    this.main = document.getElementsByClassName('main')[0]
+    this.main_ = document.getElementsByClassName('main')[0]
     this.messages = document.getElementById('messages').innerHTML
     this.offset = 0
     this.systemIds = ['e', 'm', 'p']
+    this.url = 'ws://localhost:55555'
+    this.url = `wss://${window.location.host}/miranda/`
   }
 
   clean () {
     this.isClean = false
-    this.main.querySelectorAll(':scope > div').forEach((div) => div.remove())
+    this.main_.querySelectorAll(':scope > div').forEach((div) => div.remove())
   }
 
-  core (data) {
+  emptyData () {
+  }
+
+  error () {
+  }
+
+  init () {
+    const w = new WebSocket(this.url)
+    w.addEventListener('close', () => {
+      clearInterval(interval)
+      this.error()
+      setTimeout(() => {
+        this.init()
+      }, 5 * 1000)
+    })
+    w.addEventListener('message', (e) => {
+      this.main(JSON.parse(e.data))
+    })
+    const interval = setInterval(() => {
+      if (w.readyState === w.OPEN) {
+        w.send(JSON.stringify({ offset: this.offset }))
+      }
+    }, 5 * 1000)
+  }
+
+  main (data) {
+    this.refreshStats(data)
     this.offset = data.total
     if (!data.messages.length) {
       this.emptyData()
@@ -32,13 +60,10 @@ class Chat {
     this.postLoop()
   }
 
-  emptyData () {
+  postLoop () {
   }
 
   preLoop () {
-  }
-
-  postLoop () {
   }
 
   processMessage (message) {
@@ -67,13 +92,16 @@ class Chat {
     }
   }
 
+  refreshStats () {
+  }
+
   render (data) {
-    this.main.insertAdjacentHTML('beforeend', Mustache.render(this.messages, data))
+    this.main_.insertAdjacentHTML('beforeend', Mustache.render(this.messages, data))
   }
 
   scroll () {
     if (this.isScroll) {
-      const main = this.main.offsetTop + this.main.scrollHeight
+      const main = this.main_.offsetTop + this.main_.scrollHeight
       const window_ = window.innerHeight + window.scrollY
       if (main !== window_) {
         window.scroll(0, main)
@@ -89,38 +117,29 @@ class Message {
     this.reSmile = /:\w+:/gi
   }
 
+  addReplacement (replacement, smileName, smiles) {
+    return smiles.some((smile) => {
+      if (smile.name === smileName) {
+        this.replacements.push([
+          replacement,
+          smile.animated ? smile.img_gif : smile.img_big
+        ])
+        return true
+      }
+      return false
+    })
+  }
+
   prepareG () {
     const m = this.message.text.match(this.reSmile)
     if (m) {
       m.forEach((replacement) => {
         const smileName = replacement.slice(1, -1)
-        let isFound = false
-        Global.Smiles.some((smile) => {
-          if (smile.name === smileName) {
-            this.replacements.push([
-              replacement,
-              smile.animated ? smile.img_gif : smile.img_big
-            ])
-            isFound = true
-            return true
-          }
-        })
+        const isFound = this.addReplacement(replacement, smileName, Global.Smiles)
         if (!isFound) {
-          this.message.premiums.some((id) => {
+          this.message.premiums.forEach((id) => {
             if (id in Global.Channel_Smiles) {
-              Global.Channel_Smiles[id].some((smile) => {
-                if (smile.name === smileName) {
-                  this.replacements.push([
-                    replacement,
-                    smile.animated ? smile.img_gif : smile.img_big
-                  ])
-                  isFound = true
-                  return true
-                }
-              })
-              if (isFound) {
-                return true
-              }
+              this.addReplacement(replacement, smileName, Global.Channel_Smiles[id])
             }
           })
         }
@@ -174,21 +193,4 @@ class Message {
     }
     this.replace_()
   }
-}
-
-function get (url, callbackSuccess, callbackError) {
-  const xhr = new XMLHttpRequest()
-  xhr.addEventListener('load', () => {
-    if (xhr.status === 200) {
-      callbackSuccess(JSON.parse(xhr.responseText))
-    }
-  })
-  xhr.addEventListener('error', () => {
-    if (callbackError) {
-      callbackError()
-    }
-  })
-  xhr.open('GET', url, true)
-  xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest')
-  xhr.send()
 }

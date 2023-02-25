@@ -2,8 +2,8 @@ version: '3'
 services:
   python:
     build: .
-    command: ['python', '/miranda/app/core.py']
-    image: miranda:20210220
+    command: ['python', '/miranda/app/miranda.py']
+    image: miranda:20230107
     ports:
       - '55555:55555'
     restart: unless-stopped

@@ -1,12 +1,12 @@
 'use strict'
-/* global Chat, get */
+/* global Chat */
 
 class StreamChat extends Chat {
   constructor () {
     super()
     // На 12 чат скрывается.
     this.i = 0
-    this.offset = -5
+    this.offset = -10
     this.systemIds = ['p', 'e']
   }
 
@@ -22,8 +22,12 @@ class StreamChat extends Chat {
     }
   }
 
+  error () {
+    this.emptyData()
+  }
+
   hide () {
-    this.main.classList.add('o0')
+    this.main_.classList.add('o0')
   }
 
   preLoop () {
@@ -32,8 +36,8 @@ class StreamChat extends Chat {
 
   postLoop () {
     setTimeout(() => {
-      for (const div of this.main.querySelectorAll(':scope > div')) {
-        const mainLastInvisiblePixel = this.main.offsetHeight - window.innerHeight
+      for (const div of this.main_.querySelectorAll(':scope > div')) {
+        const mainLastInvisiblePixel = this.main_.offsetHeight - window.innerHeight
         const divLastPixel = div.offsetTop + div.offsetHeight
         if (divLastPixel <= mainLastInvisiblePixel) {
           div.remove()
@@ -52,20 +56,14 @@ class StreamChat extends Chat {
   }
 
   show () {
-    this.main.classList.remove('o0')
+    this.main_.classList.remove('o0')
   }
 }
 
-let chat
-
-function init () {
-  chat = new StreamChat()
-  setInterval(() => {
-    get(
-      `messages?offset=${chat.offset}`,
-      (data) => chat.core(data))
-  }, 5 * 1000)
+function main () {
+  const chat = new StreamChat()
+  chat.init()
   setInterval(() => chat.scroll(), 1000)
 }
 
-document.addEventListener('DOMContentLoaded', () => init())
+document.addEventListener('DOMContentLoaded', () => main())

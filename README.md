@@ -31,7 +31,7 @@
 
     docker-compose up
 
-## Базовая настройка GoodGame и Twitch:
+## Базовая настройка GoodGame и Twitch
 
     [goodgame]
     # Номер канала можно взять из адресной строки чата в окне.

@@ -3,12 +3,12 @@ import asyncio
 
 import websockets
 
-from chat import Base
-from common import MESSAGES, STATS
-from config import CONFIG
-from json_ import INSTANCEK as json
+from .chat import Base
+from .common import MESSAGES, STATS
+from .config import CONFIG
+from .tipizator import INSTANCE as tipizator
 
-json.types_load = {'offset': int}
+tipizator.types_load = {'offset': int}
 
 
 class Server(Base):
@@ -27,12 +27,12 @@ class Server(Base):
     async def messages(self, websocket: Any) -> None:
         try:
             async for message in websocket:
-                data = json.loads(message)
+                data = tipizator.loads(message)
                 offset = data.get('offset', 0)
                 total = len(MESSAGES)
                 if offset > total:
                     offset = 0
-                await websocket.send(json.dumps({
+                await websocket.send(tipizator.dumps({
                     'messages': MESSAGES.data[offset:],
                     'names': self.names,
                     'stats': STATS,

@@ -4,7 +4,7 @@ import re
 
 import websockets
 
-from common import print_error
+from .common import print_error
 
 
 class Base():

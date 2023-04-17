@@ -1,9 +1,9 @@
 from datetime import datetime
 import asyncio
 
-from chat import Base
-from common import D, EXCLUDE_IDS, MESSAGES
-from config import CONFIG
+from .chat import Base
+from .common import D, EXCLUDE_IDS, MESSAGES
+from .config import CONFIG
 
 EXCLUDE_IDS.extend(['js', 'tts'])
 INCLUDE_IDS: list[str] = ['p', 'e']
@@ -106,7 +106,7 @@ class Commands(Base):
         await self.add_test_messages_p()
 
     async def add_test_messages_t(self) -> None:
-        import twitch
+        from . import twitch
         t = twitch.Twitch('sle')
         m = dict(id='t', name='chaos_soft', color='#ff69b4', text='-t от root')
         MESSAGES.append(m.copy())

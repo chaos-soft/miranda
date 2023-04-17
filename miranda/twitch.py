@@ -1,14 +1,14 @@
 from datetime import datetime
 import asyncio
 import json
-import os
 
-from chat import Chat, WebSocket
-from common import make_request, MESSAGES, STATS, D
-from config import CONFIG, BASE_DIR
 import aiohttp
 
-with open(os.path.join(BASE_DIR, 'twitch.json')) as f:
+from .chat import Chat, WebSocket
+from .common import make_request, MESSAGES, STATS, D
+from .config import CONFIG, get_config_file
+
+with open(get_config_file('twitch.json')) as f:
     data = json.load(f)
 
 HEADERS: dict[str, str] = {

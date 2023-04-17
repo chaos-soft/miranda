@@ -1,34 +1,33 @@
-#!/usr/bin/env python3
 from typing import Any
 import asyncio
 import signal
 import sys
 
-from config import CONFIG
-import commands
-import server
+from . import commands
+from . import server
+from .config import CONFIG
 
 TASKS: list[asyncio.Task[None]] = []
 
 
-async def main() -> None:
+async def run() -> None:
     try:
         async with asyncio.TaskGroup() as tg:
             TASKS.append(tg.create_task(server.Server().main()))
             if 'commands' in CONFIG:
                 TASKS.append(tg.create_task(commands.Commands().main()))
             if 'goodgame' in CONFIG:
-                import goodgame
+                from . import goodgame
                 for channel in CONFIG['goodgame'].getlist('channels'):
                     TASKS.append(tg.create_task(goodgame.GoodGame(channel).main()))
             if 'sc2tv' in CONFIG:
-                import sc2tv
+                from . import sc2tv
                 for channel in CONFIG['sc2tv'].getlist('channels'):
                     s = sc2tv.Sc2tv(channel)
                     TASKS.append(tg.create_task(s.main()))
                     TASKS.append(tg.create_task(s.send_heartbeat()))
             if 'twitch' in CONFIG:
-                import twitch
+                from . import twitch
                 channels = CONFIG['twitch'].getlist('channels')
                 for channel in channels:
                     TASKS.append(tg.create_task(twitch.Twitch(channel).main()))
@@ -42,12 +41,15 @@ async def main() -> None:
         pass
 
 
+def main() -> int:
+    signal.signal(signal.SIGINT, shutdown)
+    asyncio.run(run())
+    return 0
+
+
 def shutdown(*args: Any) -> None:
     for task in TASKS:
         task.cancel()
-    sys.exit(0)
 
 
-if __name__ == '__main__':
-    signal.signal(signal.SIGINT, shutdown)
-    asyncio.run(main())
+sys.exit(main())

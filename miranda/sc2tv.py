@@ -1,7 +1,7 @@
 import json
 
-from chat import WebSocket
-from common import D, MESSAGES
+from .chat import WebSocket
+from .common import D, MESSAGES
 
 
 class Sc2tv(WebSocket):

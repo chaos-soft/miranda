@@ -1,8 +1,8 @@
 import json
 
-from chat import WebSocket
-from common import D, MESSAGES, STATS
-from config import CONFIG
+from .chat import WebSocket
+from .common import D, MESSAGES, STATS
+from .config import CONFIG
 
 
 class GoodGame(WebSocket):

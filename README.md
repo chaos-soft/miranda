@@ -18,7 +18,8 @@
     venv/bin/pip install --no-cache-dir --upgrade -r requirements.txt
 
 Все настройки хранятся в файле config.ini.
-Он должен быть в ~/.config/miranda.
+Находиться он должен в ~/.config/miranda.
+Там же должен быть и twitch.json.
 Проще всего сделать ссылку на текущую папку:
 
     ln -s `pwd` ~/.config/miranda
@@ -47,7 +48,8 @@
 
 ## access_token для Twitch
 
-Используем API для получения токена и сохраняем его в app/twitch.json.
+Используем API для получения токена и сохраняем его в
+~/.config/miranda/twitch.json.
 
     curl -X POST -d 'client_id=xxx&client_secret=xxx&grant_type=client_credentials&scope=chat:read' https://id.twitch.tv/oauth2/token > twitch.json
 

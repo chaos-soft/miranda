@@ -6,7 +6,7 @@ services:
     image: miranda:20230107
     ports:
       - '55555:55555'
-    restart: unless-stopped
+    restart: 'no'
     stdin_open: true
     stop_signal: SIGINT
     tty: true

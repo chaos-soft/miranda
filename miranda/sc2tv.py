@@ -7,6 +7,7 @@ from .common import D, MESSAGES
 class Sc2tv(WebSocket):
     # Ping - 30 секунд, timeout - 60.
     heartbeat: int = 25
+    heartbeat_data: str = '2'
     url: str = 'wss://chat.sc2tv.ru'
 
     async def add_message(self, data: D) -> None:

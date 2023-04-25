@@ -19,7 +19,9 @@ async def run() -> None:
             if 'goodgame' in CONFIG:
                 from . import goodgame
                 for channel in CONFIG['goodgame'].getlist('channels'):
-                    TASKS.append(tg.create_task(goodgame.GoodGame(channel).main()))
+                    g = goodgame.GoodGame(channel)
+                    TASKS.append(tg.create_task(g.main()))
+                    TASKS.append(tg.create_task(g.send_heartbeat()))
             if 'sc2tv' in CONFIG:
                 from . import sc2tv
                 for channel in CONFIG['sc2tv'].getlist('channels'):

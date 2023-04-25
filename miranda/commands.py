@@ -7,7 +7,6 @@ from .config import CONFIG
 
 EXCLUDE_IDS.extend(['js', 'tts'])
 INCLUDE_IDS: list[str] = ['p', 'e']
-PATH: str = '/tmp/miranda'
 
 
 class CommandsError(Exception):
@@ -16,7 +15,6 @@ class CommandsError(Exception):
 
 class Commands(Base):
     friendly: list[str] = CONFIG['base'].getlist('friendly')
-    i: int = 0
     offset: int = 0
     root: list[str] = CONFIG['base'].getlist('root')
     start_timestamp: float = datetime.now().timestamp()
@@ -51,8 +49,6 @@ class Commands(Base):
                         await getattr(self, p[0])(
                             message=message,
                             command_text=message['text'][len(k):].strip())
-                self.i += 1
-                await self.write_total()
                 await asyncio.sleep(0.5)
         except asyncio.CancelledError:
             await self.on_close()
@@ -160,9 +156,3 @@ class Commands(Base):
     async def kill(self, **kwargs: D) -> None:
         await self.on_close()
         raise CommandsError
-
-    async def write_total(self) -> None:
-        if self.i == 2:
-            self.i = 0
-            with open(PATH, 'w') as f:
-                f.write(str(len(MESSAGES)))

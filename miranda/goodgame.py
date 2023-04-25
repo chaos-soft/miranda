@@ -6,8 +6,10 @@ from .config import CONFIG
 
 
 class GoodGame(WebSocket):
+    heartbeat: int = 20
+    heartbeat_data: str = json.dumps({'type': 'ping', 'data': {}})
     text: list[str] = CONFIG['base'].getlist('text')
-    url: str = 'wss://chat.goodgame.ru/chat/websocket'
+    url: str = 'wss://chat-1.goodgame.ru/chat2/'
 
     async def add_message(self, data: D) -> None:
         message = dict(id='g', name=data['user_name'], text=data['text'],
@@ -43,7 +45,8 @@ class GoodGame(WebSocket):
         data = {
             'data': {
                 'channel_id': self.channel,
-                'hidden': False,
+                'hidden': 0,
+                'reload': False,
             },
             'type': 'join',
         }

@@ -1,6 +1,6 @@
 version: '3'
 services:
-  python:
+  miranda:
     build: .
     command: ['python', '-m', 'miranda']
     image: miranda:20230107

@@ -2,8 +2,6 @@ from datetime import datetime
 import asyncio
 import json
 
-import aiohttp
-
 from .chat import Chat, WebSocket
 from .common import make_request, MESSAGES, STATS, D
 from .config import CONFIG, get_config_file
@@ -15,7 +13,7 @@ HEADERS: dict[str, str] = {
     'Client-ID': 'l0sytxv7tot9ynjakkx4o6ddlpn6qp',
     'Authorization': f'Bearer {data["access_token"]}',
 }
-TIMEOUT: aiohttp.ClientTimeout = aiohttp.ClientTimeout(total=10)
+TIMEOUT: float = 10.0
 
 FOLLOWS: dict[str, int] = {}
 

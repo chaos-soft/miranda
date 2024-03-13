@@ -4,7 +4,7 @@ import asyncio
 import collections
 import html
 
-import aiohttp
+import httpx
 
 D = dict[str, Any]
 EXCLUDE_IDS: list[str] = ['m']
@@ -34,9 +34,10 @@ async def make_request(
 ) -> Any:
     while retries:
         try:
-            async with aiohttp.request(method, url, **kwargs) as r:
-                assert r.status == 200
-                return await r.json()
+            async with httpx.AsyncClient() as client:
+                r = await client.request(method, url, **kwargs)
+                assert r.status_code == 200
+                return r.json()
         except Exception as e:
             await print_error(f'{type(e).__name__}: {url}')
             retries -= 1

@@ -104,7 +104,7 @@ class Commands(Base):
     async def add_test_messages_t(self) -> None:
         from . import twitch
         t = twitch.Twitch('sle')
-        m = dict(id='t', name='chaos_soft', color='#ff69b4', text='-t от root')
+        m = dict(id='t', name='chaos_soft', color='#ff69b4', text='+t от root')
         MESSAGES.append(m.copy())
         m['text'] = '-i https://gals.kindgirls.com/d009/ariel_25530/ariel_25530_2.jpg'
         MESSAGES.append(m.copy())
@@ -118,7 +118,7 @@ class Commands(Base):
         MESSAGES.append(m.copy())
 
     async def add_test_messages_g(self) -> None:
-        message = dict(id='g', name='chaos-soft', text='-t от friendly')
+        message = dict(id='g', name='chaos-soft', text='+t от friendly')
         MESSAGES.append(message.copy())
         message['text'] = '-i https://gals.kindgirls.com/d009/ariel_09328/ariel_09328_2.jpg'
         MESSAGES.append(message.copy())
@@ -126,7 +126,7 @@ class Commands(Base):
         MESSAGES.append(message.copy())
 
     async def add_test_messages_s(self) -> None:
-        message = dict(id='s', name='xxx', text='-t от xxx')
+        message = dict(id='s', name='xxx', text='+t от xxx')
         MESSAGES.append(message.copy())
         message['text'] = '-i https://gals.kindgirls.com/d009/ariel_09328/ariel_09328_8.jpg'
         MESSAGES.append(message.copy())
@@ -137,21 +137,17 @@ class Commands(Base):
 
     async def add_test_messages_y(self) -> None:
         message: D = dict(id='s', name='xxx_timestamp')
-        message['text'] = '-i https://gals.kindgirls.com/d009/ariel_09328/ariel_09328_8.jpg'
+        message['text'] = '-и https://gals.kindgirls.com/d009/ariel_09328/ariel_09328_8.jpg'
         message['timestamp'] = datetime.now().timestamp() - 28 * 24 * 60 * 60
         MESSAGES.append(message.copy())
 
     async def add_test_messages_p(self) -> None:
         message = dict(id='p', name='xxx')
-        message['text'] = '-t xxx задонатил и не сказал ничего.'
+        message['text'] = '+t xxx задонатил и не сказал ничего.'
         MESSAGES.append(message.copy())
 
     async def add_secret(self, **kwargs: D) -> None:
         MESSAGES.append(dict(id='m', text='xxx'))
-
-    async def add_wasd(self, message: D, command_text: str) -> None:
-        CONFIG['wasd']['stream'], CONFIG['wasd']['channel'], CONFIG['wasd']['jwt'] = \
-            command_text.split('@')
 
     async def kill(self, **kwargs: D) -> None:
         await self.on_close()

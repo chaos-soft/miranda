@@ -1,2 +1,2 @@
-aiohttp==3.9.1
+httpx==0.26.0
 websockets==12.0

@@ -1,9 +1,8 @@
 version: '3'
 services:
   miranda:
-    build: .
-    command: ['python', '-m', 'miranda']
-    image: miranda:20230107
+    command: sh -c 'pip install -Ur requirements.txt && python -m miranda'
+    image: python:3-alpine
     ports:
       - '55555:55555'
     restart: 'no'

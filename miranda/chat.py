@@ -53,7 +53,8 @@ class WebSocket(Chat):
             raise
 
     async def on_close(self) -> None:
-        await self.w.close()
+        if self.w:
+            await self.w.close()
         self.w = None
         await super().on_close()
 
@@ -67,4 +68,7 @@ class WebSocket(Chat):
         while True:
             await asyncio.sleep(self.heartbeat)
             if self.w:
-                await self.w.send(self.heartbeat_data)
+                try:
+                    await self.w.send(self.heartbeat_data)
+                except websockets.ConnectionClosed:
+                    pass

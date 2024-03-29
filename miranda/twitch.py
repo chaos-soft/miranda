@@ -28,12 +28,22 @@ class Twitch(WebSocket):
     text: str = CONFIG['twitch'].getlist('text')[0]
     url: str = 'wss://irc-ws.chat.twitch.tv'
 
-    async def on_open(self) -> None:
-        # PASS и NICK именно в таком порядке.
-        await self.w.send('PASS oauth:deaqfawg5sxy356nijwcms3r9qtkye\r\n')
-        await self.w.send('NICK miranda_app\r\n')
-        await self.w.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n')
-        await self.w.send(f'JOIN #{self.channel}\r\n')
+    async def add_message(self, message: D) -> None:
+        message['id'] = 't'
+        if message['user-id'] in FOLLOWS:
+            message['timestamp'] = FOLLOWS[message['user-id']]
+        message.pop('user-id')
+        message['name'] = message.pop('display-name')
+        await self.parse_emotes(message)
+        MESSAGES.append(message)
+
+    async def add_notify(self, message: D) -> None:
+        text = self.text.format(message['system-msg'].replace(r'\s', ' '))
+        MESSAGES.append(dict(id='e', text=text))
+
+    async def clean_text(self, text: str) -> str:
+        """Очищает от /me."""
+        return text[8:-1] if text.startswith('\x01') else text
 
     async def on_message(self, data: str) -> None:
         if 'PRIVMSG' in data:
@@ -43,12 +53,12 @@ class Twitch(WebSocket):
         elif data.startswith('PING'):
             await self.send_pong(data)
 
-    async def send_pong(self, data: str) -> None:
-        await self.w.send(f'{data.replace("PING", "PONG")}\r\n')
-
-    async def add_notify(self, message: D) -> None:
-        text = self.text.format(message['system-msg'].replace(r'\s', ' '))
-        MESSAGES.append(dict(id='e', text=text))
+    async def on_open(self) -> None:
+        # PASS и NICK именно в таком порядке.
+        await self.w.send('PASS oauth:deaqfawg5sxy356nijwcms3r9qtkye\r\n')
+        await self.w.send('NICK miranda_app\r\n')
+        await self.w.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n')
+        await self.w.send(f'JOIN #{self.channel}\r\n')
 
     async def parse_data(self, data: str) -> D:
         parts = data.split(' ', 4)
@@ -60,19 +70,6 @@ class Twitch(WebSocket):
             if v and k in self.keys:
                 message[k] = v
         return message
-
-    async def add_message(self, message: D) -> None:
-        message['id'] = 't'
-        if message['user-id'] in FOLLOWS:
-            message['timestamp'] = FOLLOWS[message['user-id']]
-        message.pop('user-id')
-        message['name'] = message.pop('display-name')
-        await self.parse_emotes(message)
-        MESSAGES.append(message)
-
-    async def clean_text(self, text: str) -> str:
-        """Очищает от /me."""
-        return text[8:-1] if text.startswith('\x01') else text
 
     async def parse_emotes(self, message: D) -> None:
         if 'emotes' not in message:
@@ -91,6 +88,9 @@ class Twitch(WebSocket):
         for r in message['replacements']:
             message['text'] = message['text'].replace(r[2], r[0])
             del r[2]
+
+    async def send_pong(self, data: str) -> None:
+        await self.w.send(f'{data.replace("PING", "PONG")}\r\n')
 
 
 channel_id: str = ''
@@ -111,18 +111,19 @@ async def get_channel_id(channel: str) -> None:
 class TwitchFollows(Chat):
     is_first_run: bool = True
     params: D = {'first': 100, 'to_id': None}
+    text: str = CONFIG['twitch'].getlist('text')[1]
     # https://dev.twitch.tv/docs/api/reference/#get-users-follows
     url: str = 'https://api.twitch.tv/helix/users/follows'
-    text: str = CONFIG['twitch'].getlist('text')[1]
 
-    async def main(self) -> None:
-        while True:
-            if channel_id:
-                self.params['to_id'] = channel_id
-                sleep = await self.load()
-            else:
-                sleep = TIMEOUT_NEXT
-            await asyncio.sleep(sleep)
+    async def alert(self, follows: list[str]) -> None:
+        # https://dev.twitch.tv/docs/api/reference/#get-users
+        url = f'https://api.twitch.tv/helix/users?id={"&id=".join(follows)}'
+        data = await make_request(url, retries=2, timeout=TIMEOUT, headers=HEADERS)
+        if not data:
+            return None
+        for follow in data['data']:
+            text = self.text.format(follow['display_name'] or follow['login'])
+            MESSAGES.append(dict(id='e', text=text))
 
     async def load(self) -> int:
         data = await make_request(self.url, params=self.params, timeout=TIMEOUT, headers=HEADERS)
@@ -152,15 +153,14 @@ class TwitchFollows(Chat):
             await self.print_error(f'запущен ({len(FOLLOWS)})')
             return TIMEOUT_SUCCESS
 
-    async def alert(self, follows: list[str]) -> None:
-        # https://dev.twitch.tv/docs/api/reference/#get-users
-        url = f'https://api.twitch.tv/helix/users?id={"&id=".join(follows)}'
-        data = await make_request(url, retries=2, timeout=TIMEOUT, headers=HEADERS)
-        if not data:
-            return None
-        for follow in data['data']:
-            text = self.text.format(follow['display_name'] or follow['login'])
-            MESSAGES.append(dict(id='e', text=text))
+    async def main(self) -> None:
+        while True:
+            if channel_id:
+                self.params['to_id'] = channel_id
+                sleep = await self.load()
+            else:
+                sleep = TIMEOUT_NEXT
+            await asyncio.sleep(sleep)
 
 
 class TwitchStats(Chat):

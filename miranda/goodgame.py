@@ -12,8 +12,7 @@ class GoodGame(WebSocket):
     url: str = 'wss://chat-1.goodgame.ru/chat2/'
 
     async def add_message(self, data: D) -> None:
-        message = dict(id='g', name=data['user_name'], text=data['text'],
-                       premiums=data['premiums'])
+        message = dict(id='g', name=data['user_name'], text=data['text'], premiums=data['premiums'])
         MESSAGES.append(message)
 
     async def add_payment(self, data: D) -> None:

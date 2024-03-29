@@ -48,7 +48,8 @@ class Commands(Base):
                        (p[1] == 'follows' and await self.is_timestamp(message, p)):
                         await getattr(self, p[0])(
                             message=message,
-                            command_text=message['text'][len(k):].strip())
+                            command_text=message['text'][len(k):].strip(),
+                        )
                 await asyncio.sleep(0.5)
         except asyncio.CancelledError:
             await self.on_close()

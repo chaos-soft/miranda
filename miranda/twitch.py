@@ -125,8 +125,7 @@ class TwitchFollows(Chat):
             await asyncio.sleep(sleep)
 
     async def load(self) -> int:
-        data = await make_request(self.url, params=self.params, timeout=TIMEOUT,
-                                  headers=HEADERS)
+        data = await make_request(self.url, params=self.params, timeout=TIMEOUT, headers=HEADERS)
         if not data:
             return TIMEOUT_ERROR
         new_follows = []
@@ -134,9 +133,8 @@ class TwitchFollows(Chat):
             if follow['from_id'] in FOLLOWS:
                 break
             FOLLOWS[follow['from_id']] = int(
-                datetime.
-                strptime(follow['followed_at'].split('T')[0], '%Y-%m-%d').
-                timestamp())
+                datetime.strptime(follow['followed_at'].split('T')[0], '%Y-%m-%d').timestamp(),
+            )
             new_follows.append(follow['from_id'])
         if not self.is_first_run:
             if new_follows:

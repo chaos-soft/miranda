@@ -99,10 +99,10 @@ channel_id: str = ''
 async def get_channel_id(channel: str) -> None:
     # https://dev.twitch.tv/docs/api/reference/#get-users
     url = f'https://api.twitch.tv/helix/users?login={channel}'
-    global channel_id
     while True:
         data = await make_request(url, timeout=TIMEOUT, headers=HEADERS)
         if data:
+            global channel_id
             channel_id = data['data'][0]['id']
             break
         await asyncio.sleep(TIMEOUT_ERROR)

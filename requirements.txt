@@ -1,2 +1,6 @@
-httpx==0.26.0
+# google-api-python-client==2.124.0
+# google-auth-httplib2==0.2.0
+# google-auth-oauthlib==1.2.0
+httpx==0.27.0
+pytest-playwright==0.4.4
 websockets==12.0

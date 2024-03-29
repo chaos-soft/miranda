@@ -39,6 +39,16 @@ async def run() -> None:
                             TASKS.append(tg.create_task(twitch.TwitchFollows(channel).main()))
                         if CONFIG['twitch'].getboolean('is_stats'):
                             TASKS.append(tg.create_task(twitch.TwitchStats(channel).main()))
+            if 'youtube' in CONFIG:
+                from . import youtube
+                TASKS.append(tg.create_task(youtube.get_authorization_url()))
+                TASKS.append(tg.create_task(youtube.get_credentials()))
+                TASKS.append(tg.create_task(youtube.refresh_credentials()))
+                TASKS.append(tg.create_task(youtube.YouTube().main()))
+            if 'youtube_playwright' in CONFIG:
+                from . import youtube_playwright
+                id = CONFIG['youtube_playwright'].get('id')
+                TASKS.append(tg.create_task(youtube_playwright.YouTube(id).main()))
     except* commands.CommandsError:
         pass
 
@@ -46,7 +56,7 @@ async def run() -> None:
 def main() -> int:
     signal.signal(signal.SIGINT, shutdown)
     asyncio.run(run())
-    return 0
+    return 128 + 2
 
 
 def shutdown(*args: Any) -> None:

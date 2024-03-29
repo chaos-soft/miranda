@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Union
+from typing import Any
 import asyncio
 import collections
 import html
@@ -8,7 +8,7 @@ import httpx
 
 D = dict[str, Any]
 EXCLUDE_IDS: list[str] = ['m']
-STATS: dict[str, Union[int, str]] = {}
+STATS: dict[str, int | str] = {}
 
 
 class UserList(collections.UserList[D]):

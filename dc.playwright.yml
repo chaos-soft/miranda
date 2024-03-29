@@ -1,0 +1,17 @@
+version: '3'
+services:
+  miranda:
+    build: .
+    command: python -m miranda
+    image: miranda:20240328
+    ports:
+      - '55555:55555'
+    restart: 'no'
+    stdin_open: true
+    stop_signal: SIGINT
+    tty: true
+    volumes:
+      - ./config.ini:/root/.config/miranda/config.ini:ro
+      - ./twitch.json:/root/.config/miranda/twitch.json:ro
+      - .:/miranda
+    working_dir: /miranda

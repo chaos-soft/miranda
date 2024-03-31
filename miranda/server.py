@@ -6,9 +6,9 @@ import websockets
 from .chat import Base
 from .common import MESSAGES, STATS
 from .config import CONFIG
-from .tipizator import INSTANCE as tipizator
+from .tipizator import Tipizator
 
-tipizator.types_load = {'offset': int, 'code': str}
+tipizator = Tipizator(types_load={'offset': int, 'code': str})
 
 
 class Server(Base):

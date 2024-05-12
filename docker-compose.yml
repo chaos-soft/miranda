@@ -1,4 +1,3 @@
-version: '3'
 services:
   miranda:
     command: sh -c 'pip install -Ur requirements.txt && python -m miranda'

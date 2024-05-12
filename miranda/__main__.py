@@ -11,6 +11,11 @@ TASKS: list[asyncio.Task[None]] = []
 
 
 async def run() -> None:
+    if 'vkplay_playwright' in CONFIG or 'youtube_playwright' in CONFIG:
+        from playwright.async_api import async_playwright
+        playwright = await async_playwright().start()
+        browser = await playwright.firefox.launch(headless=True)
+        context = await browser.new_context()
     try:
         async with asyncio.TaskGroup() as tg:
             TASKS.append(tg.create_task(server.Server().main()))
@@ -39,6 +44,10 @@ async def run() -> None:
                             TASKS.append(tg.create_task(twitch.TwitchFollows(channel).main()))
                         if CONFIG['twitch'].getboolean('is_stats'):
                             TASKS.append(tg.create_task(twitch.TwitchStats(channel).main()))
+            if 'vkplay_playwright' in CONFIG:
+                from . import vkplay_playwright
+                channel = CONFIG['vkplay_playwright'].get('channel')
+                TASKS.append(tg.create_task(vkplay_playwright.VKPlay(channel).main(context)))
             if 'youtube' in CONFIG:
                 from . import youtube
                 TASKS.append(tg.create_task(youtube.get_authorization_url()))
@@ -48,9 +57,13 @@ async def run() -> None:
             if 'youtube_playwright' in CONFIG:
                 from . import youtube_playwright
                 id = CONFIG['youtube_playwright'].get('id')
-                TASKS.append(tg.create_task(youtube_playwright.YouTube(id).main()))
+                TASKS.append(tg.create_task(youtube_playwright.YouTube(id).main(context)))
     except* commands.CommandsError:
         pass
+    finally:
+        if 'vkplay_playwright' in CONFIG or 'youtube_playwright' in CONFIG:
+            await browser.close()
+            await playwright.stop()
 
 
 def main() -> int:

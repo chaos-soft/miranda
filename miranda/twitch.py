@@ -172,7 +172,7 @@ class TwitchStats(Chat):
     async def load(self) -> None:
         data = await make_request(self.url, timeout=TIMEOUT, headers=HEADERS)
         if data:
-            await self.alert(data['data'][0]['viewer_count'] if data['data'] else '-')
+            await self.alert(data['data'][0]['viewer_count'] if data['data'] else '')
 
     async def main(self) -> None:
         try:

@@ -1,6 +1,6 @@
 import asyncio
 
-from playwright.async_api import async_playwright, Locator
+from playwright.async_api import Locator, BrowserContext
 
 from .chat import Chat
 from .common import MESSAGES
@@ -25,20 +25,20 @@ class YouTube(Chat):
                 text=await message.locator('#message').inner_text(),
             ))
 
-    async def main(self) -> None:
-        async with async_playwright() as p:
-            browser = await p.firefox.launch(headless=True)
-            page = await browser.new_page()
-            await page.goto(f'https://www.youtube.com/live_chat?is_popout=1&v={self.channel}')
-            await self.on_start()
-            try:
-                items = page.locator('#items.style-scope.yt-live-chat-item-list-renderer')
-                while True:
-                    for v in await items.locator('yt-live-chat-text-message-renderer').all():
-                        await self.add_message(v)
-                    await items.evaluate('(items) => items.innerHTML = ""')
-                    await asyncio.sleep(TIMEOUT_5S)
-            except asyncio.CancelledError:
-                await browser.close()
-                await self.on_close()
-                raise
+    async def main(self, context: BrowserContext) -> None:
+        page = await context.new_page()
+        await page.goto(f'https://www.youtube.com/live_chat?is_popout=1&v={self.channel}')
+        await self.on_start()
+        # Все сообщения.
+        await page.locator('#trigger.style-scope.tp-yt-paper-menu-button').click()
+        await page.locator('a.yt-simple-endpoint.style-scope.yt-dropdown-menu').nth(1).click()
+        items = page.locator('#items.style-scope.yt-live-chat-item-list-renderer')
+        try:
+            while True:
+                for v in await items.locator('yt-live-chat-text-message-renderer').all():
+                    await self.add_message(v)
+                await items.evaluate('(items) => items.innerHTML = ""')
+                await asyncio.sleep(TIMEOUT_5S)
+        except asyncio.CancelledError:
+            await self.on_close()
+            raise

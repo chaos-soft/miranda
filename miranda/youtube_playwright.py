@@ -12,7 +12,7 @@ class YouTube(Chat):
     async def add_message(self, message: Locator) -> None:
         try:
             for v in await message.locator('#message > img').all():
-                assert (await v.get_attribute('src')).startswith('https://www.youtube.com/s/gaming/emoji/')
+                assert (await v.get_attribute('src')).startswith('https://fonts.gstatic.com/')
             MESSAGES.extend([dict(
                 id='y',
                 name=await message.locator('#author-name').inner_text(),

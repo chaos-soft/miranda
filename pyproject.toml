@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 dependencies = [
     "httpx==0.27.0",
-    "pytest-playwright==0.4.4",
-    "websockets==12.0",
+    "pytest-playwright==0.5.1",
+    "websockets==13.0",
 ]
 license = {file = "LICENSE"}
 name = "miranda"
 readme = "README.md"
 requires-python = ">=3.11"
-version = "20240328"
+version = "20240823"

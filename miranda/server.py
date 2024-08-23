@@ -6,9 +6,9 @@ import websockets
 from .chat import Base
 from .common import MESSAGES, STATS
 from .config import CONFIG
-from .tipizator import INSTANCE as tipizator
+from .tipizator import Tipizator
 
-tipizator.types_load = {'offset': int}
+tipizator = Tipizator(types_load={'offset': int, 'code': str})
 
 
 class Server(Base):
@@ -39,5 +39,7 @@ class Server(Base):
                     'total': total,
                     'tts_api_key': self.tts_api_key,
                 }))
-        except websockets.exceptions.ConnectionClosedError as e:
+                if 'youtube' in CONFIG:
+                    CONFIG['youtube']['code'] = data.get('code', '')
+        except (websockets.exceptions.ConnectionClosedError, websockets.exceptions.ConnectionClosedOK) as e:
             await self.print_exception(e)

@@ -15,7 +15,7 @@ class Base():
         await self.print_error('запущен')
 
     async def print_error(self, str_: str) -> None:
-        await print_error(f'{type(self).__name__} {str_}.')
+        await print_error(f'{type(self).__name__} {str_.rstrip('.')}.')
 
     async def print_exception(self, e: Exception) -> None:
         await self.print_error(f'{type(e).__name__}: {e}')

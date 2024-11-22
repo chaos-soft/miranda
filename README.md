@@ -1,4 +1,4 @@
-# Miranda — чат для GoodGame, Sc2tv и Twitch
+# Miranda — чат для GoodGame, Sc2tv, Twitch, YouTube и VK Play Live
 
 Чат поддерживает донаты через GoodGame и Sc2tv.
 Подписки GoodGame и Twitch.

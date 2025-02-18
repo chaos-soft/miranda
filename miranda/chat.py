@@ -43,7 +43,7 @@ class WebSocket(Chat):
                     await self.on_start()
                     await self.on_open()
                     async for message in self.w:
-                        await self.on_message(message.strip())
+                        await self.on_message(str(message).strip())
                 except websockets.ConnectionClosed as e:
                     await self.print_exception(e)
                     await self.on_close()

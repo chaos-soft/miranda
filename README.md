@@ -22,7 +22,7 @@
 Там же должен быть и twitch.json.
 Проще всего сделать ссылку на текущую папку:
 
-    ln -s `pwd` ~/.config/miranda
+    ln -s $(pwd) ~/.config/miranda
 
 Запуск:
 

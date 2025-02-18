@@ -14,7 +14,7 @@ class VKPlay(Chat):
         MESSAGES.extend([dict(
             id='v',
             name=name.rstrip(':'),
-            text=await message.locator('data-test-id=ContentRendererWithTooltip:element').inner_html(),
+            text=await message.locator('[data-role=messageMainContent]').inner_html(),
         )])
 
     async def add_stats(self, stats: Locator) -> None:
@@ -25,7 +25,7 @@ class VKPlay(Chat):
 
     async def main(self, context: BrowserContext) -> None:
         page = await context.new_page()
-        await page.goto(f'https://live.vkplay.ru/{self.channel}/only-chat?initialMode=0')
+        await page.goto(f'https://live.vkvideo.ru/{self.channel}/only-chat')
         await self.on_start()
         items = page.locator('data-test-id=ChatMessage:root')
         stats = page.locator('xpath=/html/body/div[1]/div/div/div/div/div[2]/div[1]/div[1]/div/div/span')

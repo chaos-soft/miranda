@@ -3,9 +3,11 @@ import asyncio
 from playwright.async_api import Locator, BrowserContext
 
 from .chat import Chat
-from .common import MESSAGES
+from .common import make_request, MESSAGES, STATS
 
+TIMEOUT_10S: float = 10.0
 TIMEOUT_5S: int = 5
+TIMEOUT_15M: int = 15 * 60
 
 
 class YouTube(Chat):
@@ -41,6 +43,41 @@ class YouTube(Chat):
                     await self.add_message(v)
                 await items.evaluate('(items) => items.innerHTML = ""')
                 await asyncio.sleep(TIMEOUT_5S)
+        except asyncio.CancelledError:
+            await self.on_close()
+            raise
+
+
+class YouTubeStats(Chat):
+    """Статистика лайков и просмотров из RSS."""
+    url: str = 'https://www.youtube.com/feeds/videos.xml?channel_id={}'
+
+    async def add_stats(self, data: str) -> None:
+        is_finded = False
+        stats: list[str] = ['0', '0']
+        for v in data.split('\n', 50):
+            if f'<yt:videoId>{self.id}</yt:videoId>' in v:
+                is_finded = True
+            if is_finded and '<media:starRating count' in v:
+                stats[1] = v.split('"')[1]
+            if is_finded and '<media:statistics views' in v:
+                stats[0] = v.split('"')[1]
+                STATS['y'] = ', '.join(stats)
+                break
+
+    async def load(self) -> None:
+        data = await make_request(self.url, timeout=TIMEOUT_10S, is_json=False)
+        if data:
+            await self.add_stats(data)
+
+    async def main(self, id: str) -> None:
+        try:
+            await self.on_start()
+            self.id = id
+            self.url = self.url.format(self.channel)
+            while True:
+                await self.load()
+                await asyncio.sleep(TIMEOUT_15M)
         except asyncio.CancelledError:
             await self.on_close()
             raise

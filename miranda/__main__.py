@@ -56,8 +56,10 @@ async def run() -> None:
                 TASKS.append(tg.create_task(youtube.YouTube().main()))
             if 'youtube_playwright' in CONFIG:
                 from . import youtube_playwright
+                channel = CONFIG['youtube_playwright'].get('channel')
                 id = CONFIG['youtube_playwright'].get('id')
                 TASKS.append(tg.create_task(youtube_playwright.YouTube(id).main(context)))
+                TASKS.append(tg.create_task(youtube_playwright.YouTubeStats(channel).main(id)))
     except* commands.CommandsError:
         pass
     finally:

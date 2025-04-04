@@ -30,6 +30,7 @@ async def make_request(
     retries: int = 1,
     method: str = 'GET',
     sleep: int = 5,
+    is_json: bool = True,
     **kwargs: Any,
 ) -> Any:
     while retries:
@@ -37,7 +38,10 @@ async def make_request(
             async with httpx.AsyncClient() as client:
                 r = await client.request(method, url, **kwargs)
                 assert r.status_code == 200
-                return r.json()
+                if is_json:
+                    return r.json()
+                else:
+                    return r.text
         except Exception as e:
             await print_error(f'{type(e).__name__}: {url}')
             retries -= 1

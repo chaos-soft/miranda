@@ -35,7 +35,7 @@
 ## Базовая настройка GoodGame и Twitch
 
     [goodgame]
-    # Номер канала можно взять из адресной строки чата в окне.
+    # Номер канала можно взять из адресной строки плеера в окне.
     channels = 22759
 
     [sc2tv]
@@ -67,7 +67,7 @@
 ## Оформление и темы
 
 Интерфейс был полностью удалён.
-Смотрите [miranda-next](https://github.com/chaos-soft/miranda-next).
+Смотрите [miranda-react](https://github.com/chaos-soft/miranda-react).
 
 ## Релизы
 
@@ -81,6 +81,7 @@
     "--max-line-length=119"
 
 ## GoodGame
+## Playwright
 ## Sc2tv
 ## Twitch
 ## Команды

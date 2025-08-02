@@ -10,6 +10,6 @@ services:
     tty: true
     volumes:
       - ./config.ini:/root/.config/miranda/config.ini:ro
-      - ./twitch.json:/root/.config/miranda/twitch.json:ro
+      - ./twitch.json:/root/.config/miranda/twitch.json
       - .:/miranda
     working_dir: /miranda

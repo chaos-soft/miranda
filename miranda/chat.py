@@ -1,7 +1,8 @@
-from typing import Any, Union
+from typing import Any
 import asyncio
 import re
 
+from playwright.async_api import Route
 import websockets
 
 from .common import print_error
@@ -9,24 +10,33 @@ from .common import print_error
 
 class Base():
     async def on_close(self) -> None:
-        await self.print_error('остановлен')
+        await self.print_error('остановлен.')
 
     async def on_start(self) -> None:
-        await self.print_error('запущен')
+        await self.print_error('запущен.')
 
     async def print_error(self, str_: str) -> None:
-        await print_error(f'{type(self).__name__} {str_.rstrip('.')}.')
+        await print_error(f'{type(self).__name__} {str_}')
 
     async def print_exception(self, e: Exception) -> None:
         await self.print_error(f'{type(e).__name__}: {e}')
 
 
 class Chat(Base):
-    def __init__(self, channel: Union[int, str]) -> None:
+    url: str = ''
+
+    def __init__(self, channel: int | str) -> None:
         self.channel = channel
 
+    async def handle_route(self, route: Route) -> None:
+        if route.request.resource_type in ['image', 'stylesheet', 'font', 'xhr'] or \
+           self.url not in route.request.url:
+            await route.abort()
+        else:
+            await route.continue_()
+
     async def print_error(self, str_: str) -> None:
-        await print_error(f'{type(self).__name__} ({self.channel}) {str_}.')
+        await print_error(f'{type(self).__name__} ({self.channel}) {str_}')
 
 
 class WebSocket(Chat):

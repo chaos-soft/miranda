@@ -21,18 +21,14 @@ async def run() -> None:
             TASKS.append(tg.create_task(server.Server().main()))
             if 'commands' in CONFIG:
                 TASKS.append(tg.create_task(commands.Commands().main()))
+
             if 'goodgame' in CONFIG:
                 from . import goodgame
                 for channel in CONFIG['goodgame'].getlist('channels'):
                     g = goodgame.GoodGame(channel)
                     TASKS.append(tg.create_task(g.main()))
                     TASKS.append(tg.create_task(g.send_heartbeat()))
-            if 'sc2tv' in CONFIG:
-                from . import sc2tv
-                for channel in CONFIG['sc2tv'].getlist('channels'):
-                    s = sc2tv.Sc2tv(channel)
-                    TASKS.append(tg.create_task(s.main()))
-                    TASKS.append(tg.create_task(s.send_heartbeat()))
+
             if 'twitch' in CONFIG:
                 from . import twitch
                 channels = CONFIG['twitch'].getlist('channels')
@@ -40,26 +36,34 @@ async def run() -> None:
                     TASKS.append(tg.create_task(twitch.Twitch(channel).main()))
                     if channels.index(channel) == 0:
                         if CONFIG['twitch'].getboolean('is_follows'):
-                            TASKS.append(tg.create_task(twitch.get_channel_id(channel)))
                             TASKS.append(tg.create_task(twitch.TwitchFollows(channel).main()))
                         if CONFIG['twitch'].getboolean('is_stats'):
                             TASKS.append(tg.create_task(twitch.TwitchStats(channel).main()))
+                        if CONFIG['twitch'].getboolean('is_follows') or \
+                           CONFIG['twitch'].getboolean('is_stats'):
+                            TASKS.append(tg.create_task(twitch.get_authorization_url()))
+                            TASKS.append(tg.create_task(twitch.get_channel_id(channel)))
+                            TASKS.append(tg.create_task(twitch.get_credentials()))
+
             if 'vkplay_playwright' in CONFIG:
                 from . import vkplay_playwright
                 channel = CONFIG['vkplay_playwright'].get('channel')
-                TASKS.append(tg.create_task(vkplay_playwright.VKPlay(channel).main(context)))
+                page = await context.new_page()
+                TASKS.append(tg.create_task(vkplay_playwright.VKPlay(channel).main(page)))
+
             if 'youtube' in CONFIG:
                 from . import youtube
                 TASKS.append(tg.create_task(youtube.get_authorization_url()))
                 TASKS.append(tg.create_task(youtube.get_credentials()))
                 TASKS.append(tg.create_task(youtube.refresh_credentials()))
                 TASKS.append(tg.create_task(youtube.YouTube().main()))
+
             if 'youtube_playwright' in CONFIG:
                 from . import youtube_playwright
                 channel = CONFIG['youtube_playwright'].get('channel')
-                id = CONFIG['youtube_playwright'].get('id')
-                TASKS.append(tg.create_task(youtube_playwright.YouTube(id).main(context)))
-                TASKS.append(tg.create_task(youtube_playwright.YouTubeStats(channel).main(id)))
+                page = await context.new_page()
+                TASKS.append(tg.create_task(youtube_playwright.YouTube('xxx').main(page)))
+                TASKS.append(tg.create_task(youtube_playwright.YouTubeStats(channel).main()))
     except* commands.CommandsError:
         pass
     finally:

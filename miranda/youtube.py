@@ -13,8 +13,9 @@ SCOPES: list[str] = ['https://www.googleapis.com/auth/youtube.readonly']
 TIMEOUT_10S: int = 10
 TIMEOUT_5M: int = 5 * 60
 
+credentials: Credentials | None
 try:
-    credentials: Credentials | None = Credentials.from_authorized_user_file(get_config_file('youtube.json'), SCOPES)
+    credentials = Credentials.from_authorized_user_file(get_config_file('youtube.json'), SCOPES)
 except FileNotFoundError:
     credentials = None
 state: str | None = None
@@ -26,7 +27,7 @@ async def get_flow() -> Flow:
         scopes=SCOPES,
         state=state,
     )
-    flow.redirect_uri = 'http://localhost:3000/main'
+    flow.redirect_uri = 'http://localhost:5173/#/main'
     return flow
 
 

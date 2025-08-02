@@ -62,8 +62,6 @@ class Commands(Base):
         MESSAGES.append(message.copy())
         message['text'] = '@chaos обращение'
         MESSAGES.append(message.copy())
-        message['text'] = ':frog: :uuu: :rainbowfrog:'
-        MESSAGES.append(message.copy())
 
     async def add_test_messages_t(self) -> None:
         from . import twitch
@@ -82,7 +80,7 @@ class Commands(Base):
         MESSAGES.append(m.copy())
 
     async def add_test_messages_y(self) -> None:
-        message: D = dict(id='s', name='xxx_timestamp')
+        message: D = dict(id='y', name='xxx_timestamp')
         message['text'] = '-и https://gals.kindgirls.com/d9/ariel_09328/ariel_09328_8.jpg'
         message['timestamp'] = datetime.now().timestamp() - 28 * 24 * 60 * 60
         MESSAGES.append(message.copy())

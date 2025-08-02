@@ -8,7 +8,8 @@ from .config import CONFIG
 class GoodGame(WebSocket):
     heartbeat: int = 20
     heartbeat_data: str = json.dumps({'type': 'ping', 'data': {}})
-    text: list[str] = CONFIG['base'].getlist('text')
+    text_donate: str = CONFIG['base']['text_donate']
+    text_donate_empty: str = CONFIG['base']['text_donate_empty']
     url: str = 'wss://chat-1.goodgame.ru/chat2/'
 
     async def add_follower(self, data: D) -> None:
@@ -21,9 +22,9 @@ class GoodGame(WebSocket):
 
     async def add_payment(self, data: D) -> None:
         if data['message']:
-            text = self.text[0].format(data['userName'], data['message'])
+            text = self.text_donate.format(data['userName'], data['message'])
         else:
-            text = self.text[1].format(data['userName'])
+            text = self.text_donate_empty.format(data['userName'])
         MESSAGES.append(dict(id='p', text=text))
 
     async def add_premium(self, data: D) -> None:

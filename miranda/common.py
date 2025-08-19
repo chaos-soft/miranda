@@ -71,8 +71,11 @@ def get_config_file(name: str) -> Path:
 
 
 def load_credentials(name: str) -> D:
-    with open(get_config_file(name)) as f:
-        return json.load(f)
+    try:
+        with open(get_config_file(name)) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
 
 
 def start_after(variables: str | list[str], globals_: dict) -> Callable:

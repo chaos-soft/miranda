@@ -16,13 +16,9 @@ TIMEOUT_30SF: float = 30.0
 TIMEOUT_1M: int = 1 * 60
 
 chat_token: str = ''
-credentials: dict[str, str]
+credentials: dict[str, str] = load_credentials('vkplay.json')
 is_refresh_credentials: bool = False
 owner_id: int = 0
-try:
-    credentials = load_credentials('vkplay.json')
-except FileNotFoundError:
-    credentials = {}
 
 
 @start_after('credentials', globals())

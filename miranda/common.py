@@ -1,14 +1,19 @@
+from collections.abc import Callable
 from datetime import datetime
+from functools import wraps
+from pathlib import Path
 from typing import Any
 import asyncio
 import collections
 import html
+import json
 
 import httpx
 
 D = dict[str, Any]
 EXCLUDE_IDS: list[str] = ['m']
 STATS: dict[str, int | str] = {}
+TIMEOUT_5S: int = 5
 
 
 class UserList(collections.UserList[D]):
@@ -54,6 +59,39 @@ async def print_error(e: str) -> None:
     text = f'[{str(datetime.now()).split(".")[0]}] {e}'
     print(text)
     MESSAGES.append(dict(id='m', text=text))
+
+
+def dump_credentials(name: str, credentials: D) -> None:
+    with get_config_file(name).open('w') as f:
+        json.dump(credentials, f)
+
+
+def get_config_file(name: str) -> Path:
+    return Path.home() / '.config' / 'miranda' / name
+
+
+def load_credentials(name: str) -> D:
+    with open(get_config_file(name)) as f:
+        return json.load(f)
+
+
+def start_after(variables: str | list[str], globals_: dict) -> Callable:
+    if type(variables) is str:
+        variables = [variables]
+
+    def decorator(f):
+        @wraps(f)
+        async def wrapper(*args, **kwargs):
+            for variable in variables:
+                while True:
+                    v = globals_[variable]
+                    if not v:
+                        await asyncio.sleep(TIMEOUT_5S)
+                    else:
+                        break
+            return await f(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 def str_to_list(str_: str) -> list[str]:

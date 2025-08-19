@@ -5,20 +5,25 @@ import sys
 
 from . import commands
 from . import server
+from . import vkplay
+from . import vkplay_playwright
+from . import youtube_playwright
 from .config import CONFIG
 
 TASKS: list[asyncio.Task[None]] = []
 
 
 async def run() -> None:
-    if 'vkplay_playwright' in CONFIG or 'youtube_playwright' in CONFIG:
-        from playwright.async_api import async_playwright
-        playwright = await async_playwright().start()
-        browser = await playwright.firefox.launch(headless=True)
-        context = await browser.new_context()
     try:
         async with asyncio.TaskGroup() as tg:
+            vkplay.TG = tg
+            vkplay_playwright.TG = tg
+            youtube_playwright.TG = tg
             TASKS.append(tg.create_task(server.Server().main()))
+            TASKS.append(tg.create_task(vkplay.start()))
+            TASKS.append(tg.create_task(vkplay_playwright.start()))
+            TASKS.append(tg.create_task(youtube_playwright.start()))
+
             if 'commands' in CONFIG:
                 TASKS.append(tg.create_task(commands.Commands().main()))
 
@@ -45,31 +50,14 @@ async def run() -> None:
                             TASKS.append(tg.create_task(twitch.get_channel_id(channel)))
                             TASKS.append(tg.create_task(twitch.get_credentials()))
 
-            if 'vkplay_playwright' in CONFIG:
-                from . import vkplay_playwright
-                channel = CONFIG['vkplay_playwright'].get('channel')
-                page = await context.new_page()
-                TASKS.append(tg.create_task(vkplay_playwright.VKPlay(channel).main(page)))
-
             if 'youtube' in CONFIG:
                 from . import youtube
                 TASKS.append(tg.create_task(youtube.get_authorization_url()))
                 TASKS.append(tg.create_task(youtube.get_credentials()))
                 TASKS.append(tg.create_task(youtube.refresh_credentials()))
                 TASKS.append(tg.create_task(youtube.YouTube().main()))
-
-            if 'youtube_playwright' in CONFIG:
-                from . import youtube_playwright
-                channel = CONFIG['youtube_playwright'].get('channel')
-                page = await context.new_page()
-                TASKS.append(tg.create_task(youtube_playwright.YouTube('xxx').main(page)))
-                TASKS.append(tg.create_task(youtube_playwright.YouTubeStats(channel).main()))
     except* commands.CommandsError:
         pass
-    finally:
-        if 'vkplay_playwright' in CONFIG or 'youtube_playwright' in CONFIG:
-            await browser.close()
-            await playwright.stop()
 
 
 def main() -> int:
@@ -79,6 +67,9 @@ def main() -> int:
 
 
 def shutdown(*args: Any) -> None:
+    vkplay.shutdown()
+    vkplay_playwright.shutdown()
+    youtube_playwright.shutdown()
     for task in TASKS:
         task.cancel()
 

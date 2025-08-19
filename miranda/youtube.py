@@ -33,7 +33,7 @@ async def get_flow() -> Flow:
 
 async def get_authorization_url() -> None:
     if not credentials:
-        print('get_authorization_url')
+        print('youtube_get_authorization_url')
         flow = await get_flow()
         global state
         authorization_url, state = flow.authorization_url(
@@ -47,7 +47,7 @@ async def get_authorization_url() -> None:
 async def get_credentials() -> None:
     global credentials
     if not credentials:
-        print('get_credentials')
+        print('youtube_get_credentials')
         while True:
             if CONFIG['youtube']['code']:
                 flow = await get_flow()
@@ -60,7 +60,7 @@ async def get_credentials() -> None:
 
 
 async def refresh_credentials() -> None:
-    print('refresh_credentials')
+    print('youtube_refresh_credentials')
     request = Request()
     while True:
         if credentials and not credentials.valid:

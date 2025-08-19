@@ -29,7 +29,7 @@ except FileNotFoundError:
 
 async def get_authorization_url() -> None:
     if not credentials:
-        print('get_authorization_url')
+        print('twitch_get_authorization_url')
         global state
         state = 'twitch-xxx'
         authorization_url = 'https://id.twitch.tv/oauth2/authorize' \
@@ -62,7 +62,7 @@ async def get_channel_id(channel: str) -> None:
 async def get_credentials() -> None:
     global credentials
     if not credentials:
-        print('get_credentials')
+        print('twitch_get_credentials')
         while True:
             if CONFIG['twitch']['code']:
                 url = 'https://id.twitch.tv/oauth2/token'
@@ -91,7 +91,7 @@ async def refresh_credentials() -> None:
     if is_refresh_credentials:
         return None
     is_refresh_credentials = True
-    print('refresh_credentials')
+    print('twitch_refresh_credentials')
     url = 'https://id.twitch.tv/oauth2/token'
     data = {
         'client_id': CLIENT_ID,

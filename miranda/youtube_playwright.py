@@ -1,11 +1,15 @@
+from typing import Any
 import asyncio
 
 from playwright._impl._errors import TimeoutError
-from playwright.async_api import Locator, Page
+from playwright.async_api import Locator, Page, async_playwright
 
 from .chat import Chat
 from .common import make_request, MESSAGES, STATS
+from .config import CONFIG
 
+TASKS: list[asyncio.Task[None]] = []
+TG: asyncio.TaskGroup | None = None
 TIMEOUT_1S: int = 1
 TIMEOUT_30SF: float = 30.0
 TIMEOUT_5M: int = 5 * 60
@@ -14,7 +18,26 @@ TIMEOUT_5S: int = 5
 video_id: str = ''
 
 
+async def start() -> None:
+    if 'youtube_playwright' not in CONFIG or TASKS:
+        return None
+    if not TG:
+        raise
+    channel = CONFIG['youtube_playwright'].get('channel')
+    TASKS.append(TG.create_task(YouTube('xxx').main()))
+    TASKS.append(TG.create_task(YouTubeStats(channel).main()))
+
+
+def shutdown() -> None:
+    for task in TASKS:
+        task.cancel()
+    STATS['y'] = ''
+
+
 class YouTube(Chat):
+    browser: Any
+    page: Page
+    playwright: Any
     url: str = 'youtube.com'
 
     async def add_message(self, message: Locator) -> None:
@@ -24,18 +47,20 @@ class YouTube(Chat):
             text=await message.locator('#message').inner_html(),
         )])
 
-    async def main(self, page: Page) -> None:
+    async def main(self) -> None:
         while True:
             if not video_id:
                 await asyncio.sleep(TIMEOUT_5S)
             else:
                 self.channel = video_id
+                await self.start()
                 break
 
-        await page.route('**/*', self.handle_route)
-        await page.goto(f'https://www.youtube.com/live_chat?is_popout=1&v={video_id}')
-        await self.on_start()
         try:
+            page = self.page
+            await page.route('**/*', self.handle_route)
+            await page.goto(f'https://www.youtube.com/live_chat?is_popout=1&v={video_id}')
+            await self.on_start()
             # Все сообщения.
             await page.locator('#trigger.style-scope.tp-yt-paper-menu-button').click()
             await page.locator('a.yt-simple-endpoint.style-scope.yt-dropdown-menu').nth(1).click()
@@ -52,6 +77,15 @@ class YouTube(Chat):
         except TimeoutError as e:
             await self.print_exception(e)
             await self.on_close()
+        finally:
+            await self.browser.close()
+            await self.playwright.stop()
+
+    async def start(self) -> None:
+        self.playwright = await async_playwright().start()
+        self.browser = await self.playwright.firefox.launch(headless=True)
+        context = await self.browser.new_context()
+        self.page = await context.new_page()
 
 
 class YouTubeStats(Chat):

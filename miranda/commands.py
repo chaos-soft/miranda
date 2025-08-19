@@ -1,6 +1,8 @@
 from datetime import datetime
 import asyncio
 
+from . import vkplay_playwright
+from . import youtube_playwright
 from .chat import Base
 from .common import D, EXCLUDE_IDS, MESSAGES
 from .config import CONFIG
@@ -29,8 +31,10 @@ class Commands(Base):
         name = message['name'].lower()
         if name in self.root:
             message['is_root'] = True
+            message['name'] += ' [r]'
         elif name in self.friendly:
             message['is_friendly'] = True
+            message['name'] += ' [f]'
 
     async def add_secret(self, **kwargs: D) -> None:
         MESSAGES.append(dict(id='m', text='xxx'))
@@ -123,6 +127,9 @@ class Commands(Base):
                     self.offset += 1
                     if message['id'] in EXCLUDE_IDS:
                         continue
+                    # В этих типах сообщений нет имен.
+                    if message['id'] not in INCLUDE_IDS:
+                        await self.add_role(message)
                     # Параметры команды.
                     # p = ['имя метода', 'владелец', 'время с подписки']
                     for k, p in commands.items():
@@ -130,9 +137,6 @@ class Commands(Base):
                             break
                     else:
                         continue
-                    # В этих типах сообщений нет имен.
-                    if message['id'] not in INCLUDE_IDS:
-                        await self.add_role(message)
                     # Может ли пользователь использовать команду.
                     if message.get('is_root') or \
                        message['id'] in INCLUDE_IDS or \
@@ -151,3 +155,15 @@ class Commands(Base):
     async def print_to_console(self, message: D, command_text: str) -> None:
         if command_text:
             print(command_text)
+
+    async def shutdown_vkplay_playwright(self, **kwargs: D) -> None:
+        vkplay_playwright.shutdown()
+
+    async def shutdown_youtube_playwright(self, **kwargs: D) -> None:
+        youtube_playwright.shutdown()
+
+    async def start_vkplay_playwright(self, **kwargs: D) -> None:
+        await vkplay_playwright.start()
+
+    async def start_youtube_playwright(self, **kwargs: D) -> None:
+        await youtube_playwright.start()

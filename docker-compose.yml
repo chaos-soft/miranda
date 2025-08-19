@@ -11,5 +11,6 @@ services:
     volumes:
       - ./config.ini:/root/.config/miranda/config.ini:ro
       - ./twitch.json:/root/.config/miranda/twitch.json
+      - ./vkplay.json:/root/.config/miranda/vkplay.json
       - .:/miranda
     working_dir: /miranda

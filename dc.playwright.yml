@@ -2,7 +2,7 @@ services:
   miranda:
     build: .
     command: python -m miranda
-    image: miranda:20240328
+    image: miranda:20250815
     ports:
       - '55555:55555'
     restart: 'no'
@@ -12,5 +12,6 @@ services:
     volumes:
       - ./config.ini:/root/.config/miranda/config.ini:ro
       - ./twitch.json:/root/.config/miranda/twitch.json
+      - ./vkplay.json:/root/.config/miranda/vkplay.json
       - .:/miranda
     working_dir: /miranda

@@ -4,6 +4,7 @@ import signal
 import sys
 
 from . import commands
+from . import goodgame
 from . import server
 from . import twitch
 from . import vkplay
@@ -16,9 +17,11 @@ TASKS: list[asyncio.Task[None]] = []
 async def run() -> None:
     try:
         async with asyncio.TaskGroup() as tg:
+            goodgame.TG = tg
             twitch.TG = tg
             vkplay.TG = tg
             youtube_playwright.TG = tg
+            TASKS.append(tg.create_task(goodgame.start()))
             TASKS.append(tg.create_task(server.Server().main()))
             TASKS.append(tg.create_task(twitch.start()))
             TASKS.append(tg.create_task(vkplay.start()))
@@ -26,13 +29,6 @@ async def run() -> None:
 
             if 'commands' in CONFIG:
                 TASKS.append(tg.create_task(commands.Commands().main()))
-
-            if 'goodgame' in CONFIG:
-                from . import goodgame
-                for channel in CONFIG['goodgame'].getlist('channels'):
-                    g = goodgame.GoodGame(channel)
-                    TASKS.append(tg.create_task(g.main()))
-                    TASKS.append(tg.create_task(g.send_heartbeat()))
 
             if 'youtube' in CONFIG:
                 from . import youtube
@@ -51,6 +47,7 @@ def main() -> int:
 
 
 def shutdown(*args: Any) -> None:
+    goodgame.shutdown()
     twitch.shutdown()
     vkplay.shutdown()
     youtube_playwright.shutdown()

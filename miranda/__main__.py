@@ -6,7 +6,6 @@ import sys
 from . import commands
 from . import server
 from . import vkplay
-from . import vkplay_playwright
 from . import youtube_playwright
 from .config import CONFIG
 
@@ -17,11 +16,9 @@ async def run() -> None:
     try:
         async with asyncio.TaskGroup() as tg:
             vkplay.TG = tg
-            vkplay_playwright.TG = tg
             youtube_playwright.TG = tg
             TASKS.append(tg.create_task(server.Server().main()))
             TASKS.append(tg.create_task(vkplay.start()))
-            TASKS.append(tg.create_task(vkplay_playwright.start()))
             TASKS.append(tg.create_task(youtube_playwright.start()))
 
             if 'commands' in CONFIG:
@@ -68,7 +65,6 @@ def main() -> int:
 
 def shutdown(*args: Any) -> None:
     vkplay.shutdown()
-    vkplay_playwright.shutdown()
     youtube_playwright.shutdown()
     for task in TASKS:
         task.cancel()

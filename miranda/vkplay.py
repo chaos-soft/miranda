@@ -12,7 +12,7 @@ CLIENT_SECRET: str = 'DjTki7eQbDA7hfSLH9znrhmdanq6lRFXbsMIHF5k2nkw5OobkVHy4eQITZ
 TASKS: list[asyncio.Task[None]] = []
 TG: asyncio.TaskGroup | None = None
 TIMEOUT_30S: int = 30
-TIMEOUT_30SF: float = 30.0
+TIMEOUT_60SF: float = 60.0
 TIMEOUT_1M: int = 1 * 60
 
 chat_token: str = ''
@@ -25,7 +25,7 @@ owner_id: int = 0
 async def get_chat_token() -> None:
     global chat_token
     url = 'https://apidev.live.vkvideo.ru/v1/websocket/token'
-    data = await make_request(url, timeout=TIMEOUT_30SF, headers=get_headers())
+    data = await make_request(url, timeout=TIMEOUT_60SF, headers=get_headers())
     if data:
         chat_token = data['data']['token']
     else:
@@ -91,7 +91,7 @@ class OAuth():
                 'grant_type': 'authorization_code',
                 'redirect_uri': cls.redirect_uri,
             }
-            d = await make_request(cls.token_url, timeout=TIMEOUT_30SF, method='POST', data=data, headers=cls.headers)
+            d = await make_request(cls.token_url, timeout=TIMEOUT_60SF, method='POST', data=data, headers=cls.headers)
             if d:
                 credentials = d
                 dump_credentials('vkplay.json', credentials)
@@ -111,7 +111,7 @@ class OAuth():
             'refresh_token': credentials['refresh_token'],
         }
         credentials = {}
-        data = await make_request(cls.token_url, timeout=TIMEOUT_30SF, method='POST', data=data, headers=cls.headers)
+        data = await make_request(cls.token_url, timeout=TIMEOUT_60SF, method='POST', data=data, headers=cls.headers)
         if data:
             credentials = data
             dump_credentials('vkplay.json', credentials)
@@ -171,7 +171,7 @@ class VKStats(Chat):
 
     async def load(self) -> None:
         global owner_id
-        data = await make_request(self.url, timeout=TIMEOUT_30SF, headers=get_headers())
+        data = await make_request(self.url, timeout=TIMEOUT_60SF, headers=get_headers())
         if data:
             owner_id = data['data']['owner']['id']
             self.alert(data['data']['stream']['counters']['viewers'])

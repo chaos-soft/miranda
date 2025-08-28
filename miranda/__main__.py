@@ -4,6 +4,7 @@ import asyncio
 import signal
 import sys
 
+from . import commands
 from . import server
 from .common import T
 from .config import CONFIG
@@ -17,7 +18,6 @@ async def run() -> None:
         async with asyncio.TaskGroup() as tg:
             TASKS.append(tg.create_task(server.Server().main()))
             if 'commands' in CONFIG:
-                from . import commands
                 TASKS.append(tg.create_task(commands.Commands().main()))
 
             if 'goodgame' in CONFIG:

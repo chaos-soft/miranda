@@ -2,7 +2,7 @@ from typing import Any
 import asyncio
 
 from playwright._impl._errors import TimeoutError
-from playwright.async_api import Locator, Page, async_playwright
+from playwright.async_api import Locator, Page, async_playwright, Route
 
 from .chat import Chat
 from .common import MESSAGES, T, start_after, STATS
@@ -46,6 +46,13 @@ class YouTube(Chat):
             name=await message.locator('#author-name').inner_text(),
             text=await message.locator('#message').inner_html(),
         )])
+
+    async def handle_route(self, route: Route) -> None:
+        if route.request.resource_type in ['image', 'stylesheet', 'font', 'xhr'] or \
+           self.url not in route.request.url:
+            await route.abort()
+        else:
+            await route.continue_()
 
     @start_after('video_id', video_id)
     async def main(self) -> None:

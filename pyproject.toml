@@ -3,6 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
+authors = [
+    {name = "chaos-soft", email = "mail@57st.su"},
+]
 dependencies = [
     "google-api-python-client==2.179.0",
     "google-auth-httplib2==0.2.0",
@@ -11,7 +14,16 @@ dependencies = [
     "websockets==15.0.1",
 ]
 license = {file = "LICENSE"}
+maintainers = [
+    {name = "chaos-soft", email = "mail@57st.su"},
+]
 name = "miranda"
 readme = "README.md"
 requires-python = ">=3.11"
-version = "20250815"
+version = "2025.9"
+
+[project.scripts]
+miranda = "miranda.__main__:main"
+
+[project.urls]
+Repository = "https://github.com/chaos-soft/miranda.git"

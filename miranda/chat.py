@@ -2,7 +2,6 @@ from typing import Any
 import asyncio
 import re
 
-from playwright.async_api import Route
 import websockets
 
 from .common import print_error
@@ -23,17 +22,8 @@ class Base():
 
 
 class Chat(Base):
-    url: str = ''
-
     def __init__(self, channel: int | str) -> None:
         self.channel = channel
-
-    async def handle_route(self, route: Route) -> None:
-        if route.request.resource_type in ['image', 'stylesheet', 'font', 'xhr'] or \
-           self.url not in route.request.url:
-            await route.abort()
-        else:
-            await route.continue_()
 
     async def print_error(self, str_: str) -> None:
         await print_error(f'{type(self).__name__} ({self.channel}) {str_}')

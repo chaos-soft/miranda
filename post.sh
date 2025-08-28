@@ -1,7 +1,8 @@
 #!/bin/bash
-ln -s $(pwd) ~/.config/miranda
+mkdir -p ~/.config/miranda
 
-printf '{}\n' > ~/.config/miranda/client_secret.json
+curl -LJ -o ~/.config/miranda/config.ini https://github.com/chaos-soft/miranda/raw/refs/heads/master/config.ini
+
 printf '{}\n' > ~/.config/miranda/twitch.json
 printf '{}\n' > ~/.config/miranda/vkplay.json
 printf '{}\n' > ~/.config/miranda/youtube.json

@@ -1,3 +1,7 @@
+/client_secret.json
 /LOG
+/twitch.json
+/vkplay.json
+/youtube.json
 __pycache__/
 venv/

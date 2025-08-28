@@ -13,6 +13,7 @@ import httpx
 D = dict[str, Any]
 EXCLUDE_IDS: list[str] = ['m']
 STATS: dict[str, int | str] = {}
+T = list[asyncio.Task]
 TIMEOUT_5S: int = 5
 
 
@@ -34,7 +35,7 @@ async def make_request(
     url: str,
     retries: int = 1,
     method: str = 'GET',
-    sleep: int = 5,
+    sleep: float = 30.0,
     is_json: bool = True,
     **kwargs: Any,
 ) -> Any:
@@ -78,7 +79,7 @@ def load_credentials(name: str) -> D:
         return {}
 
 
-def start_after(variables: str | list[str], globals_: dict) -> Callable:
+def start_after(variables: str | list[str], globals_: D) -> Callable:
     if type(variables) is str:
         variables = [variables]
 

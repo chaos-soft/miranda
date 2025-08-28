@@ -4,12 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 dependencies = [
+    "google-api-python-client==2.179.0",
+    "google-auth-httplib2==0.2.0",
+    "google-auth-oauthlib==1.2.2",
     "httpx==0.28.1",
-    "pytest-playwright==0.6.2",
-    "websockets==14.2",
+    "websockets==15.0.1",
 ]
 license = {file = "LICENSE"}
 name = "miranda"
 readme = "README.md"
 requires-python = ">=3.11"
-version = "20240823"
+version = "20250815"

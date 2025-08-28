@@ -1,6 +1,7 @@
 from datetime import datetime
 import asyncio
 
+from . import youtube
 from . import youtube_playwright
 from .chat import Base
 from .common import D, EXCLUDE_IDS, MESSAGES
@@ -155,8 +156,14 @@ class Commands(Base):
         if command_text:
             print(command_text)
 
+    async def shutdown_youtube(self, **kwargs: D) -> None:
+        youtube.shutdown()
+
     async def shutdown_youtube_playwright(self, **kwargs: D) -> None:
         youtube_playwright.shutdown()
+
+    async def start_youtube(self, **kwargs: D) -> None:
+        await youtube.start()
 
     async def start_youtube_playwright(self, **kwargs: D) -> None:
         await youtube_playwright.start()

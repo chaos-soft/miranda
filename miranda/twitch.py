@@ -3,14 +3,14 @@ from urllib.parse import quote_plus
 import asyncio
 
 from .chat import Chat, WebSocket
-from .common import make_request, MESSAGES, STATS, D, start_after, dump_credentials, load_credentials
+from .common import make_request, MESSAGES, STATS, D, start_after, dump_credentials, load_credentials, T
 from .config import CONFIG
 
 CLIENT_ID: str = 'g0qvsrztagks1lbg03kwnt67pg9x8a5'
 CLIENT_SECRET: str = 'krlzbgo35j454d6aoxemjmnjifeoi9'
 FOLLOWS: dict[str, int] = {}
 SCOPES: list[str] = ['chat:read', 'moderator:read:followers']
-TASKS: list[asyncio.Task[None]] = []
+TASKS: T = []
 TG: asyncio.TaskGroup | None = None
 TIMEOUT_10S: int = 10
 TIMEOUT_30S: int = 30
@@ -18,30 +18,27 @@ TIMEOUT_30SF: float = 30.0
 TIMEOUT_5M: int = 5 * 60
 
 channel_id: str = ''
-credentials: dict[str, str] = load_credentials('twitch.json')
+file_name: str = 'twitch.json'
 is_refresh_credentials: bool = False
+credentials: dict[str, str] = load_credentials(file_name)
 
 
+@start_after('credentials', globals())
 async def get_channel_id(channel: str) -> None:
+    global channel_id
     # https://dev.twitch.tv/docs/api/reference/#get-users
     url = f'https://api.twitch.tv/helix/users?login={channel}'
     while True:
-        if not credentials:
-            await asyncio.sleep(TIMEOUT_30S)
-            continue
-
         data = await make_request(url, timeout=TIMEOUT_30SF, headers=get_headers())
         if data:
-            global channel_id
             channel_id = data['data'][0]['id']
             return None
         else:
             await OAuth.refresh_credentials()
-            await asyncio.sleep(TIMEOUT_30S)
 
 
 async def start() -> None:
-    if 'twitch' not in CONFIG or TASKS:
+    if TASKS:
         return None
     if not TG:
         raise
@@ -66,7 +63,7 @@ def get_headers() -> dict[str, str]:
 def shutdown() -> None:
     for task in TASKS:
         task.cancel()
-    STATS['t'] = ''
+    TASKS.clear()
 
 
 class OAuth():
@@ -77,17 +74,18 @@ class OAuth():
 
     @classmethod
     async def get_authorization_url(cls) -> None:
-        if not credentials and not CONFIG['twitch']['code']:
-            print('twitch_get_authorization_url')
-            url = ''.join([
-                cls.authorization_url,
-                '?response_type=code',
-                '&client_id=', CLIENT_ID,
-                '&redirect_uri=', quote_plus(cls.redirect_uri),
-                '&scope=', quote_plus(' '.join(SCOPES)),
-                '&state=', cls.state,
-            ])
-            MESSAGES.append(dict(id='m', text=f'<a href="{url}">Авторизация в Twitch</a>.'))
+        if credentials or CONFIG['twitch']['code']:
+            return None
+        print('twitch_get_authorization_url')
+        url = ''.join([
+            cls.authorization_url,
+            '?response_type=code',
+            '&client_id=', CLIENT_ID,
+            '&redirect_uri=', quote_plus(cls.redirect_uri),
+            '&scope=', quote_plus(' '.join(SCOPES)),
+            '&state=', cls.state,
+        ])
+        MESSAGES.append(dict(id='m', text=f'<a href="{url}">Авторизация в Twitch</a>.'))
 
     @classmethod
     async def get_credentials(cls) -> None:
@@ -106,7 +104,7 @@ class OAuth():
             d = await make_request(cls.token_url, timeout=TIMEOUT_30SF, method='POST', data=data)
             if d:
                 credentials = d
-                dump_credentials('twitch.json', credentials)
+                dump_credentials(file_name, credentials)
                 return None
             await asyncio.sleep(TIMEOUT_30S)
 
@@ -114,6 +112,7 @@ class OAuth():
     async def refresh_credentials(cls) -> None:
         global credentials, is_refresh_credentials
         if is_refresh_credentials:
+            await asyncio.sleep(TIMEOUT_30S)
             return None
         is_refresh_credentials = True
         print('twitch_refresh_credentials')
@@ -123,11 +122,10 @@ class OAuth():
             'grant_type': 'refresh_token',
             'refresh_token': credentials['refresh_token'],
         }
-        credentials = {}
         data = await make_request(cls.token_url, timeout=TIMEOUT_30SF, method='POST', data=data)
         if data:
             credentials = data
-            dump_credentials('twitch.json', credentials)
+            dump_credentials(file_name, credentials)
         is_refresh_credentials = False
 
 
@@ -153,6 +151,10 @@ class Twitch(WebSocket):
         """Очищает от /me."""
         return text[8:-1] if text.startswith('\x01') else text
 
+    @start_after('credentials', globals())
+    async def main(self) -> None:
+        await super().main()
+
     async def on_message(self, data: str) -> None:
         if 'PRIVMSG' in data:
             await self.add_message(await self.parse_data(data))
@@ -163,8 +165,8 @@ class Twitch(WebSocket):
 
     async def on_open(self) -> None:
         # PASS и NICK именно в таком порядке.
-        await self.w.send('PASS oauth:deaqfawg5sxy356nijwcms3r9qtkye\r\n')
-        await self.w.send('NICK miranda_app\r\n')
+        await self.w.send(f'PASS oauth:{credentials['access_token']}\r\n')
+        await self.w.send('NICK chaos-soft\r\n')
         await self.w.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n')
         await self.w.send(f'JOIN #{self.channel}\r\n')
 
@@ -217,7 +219,7 @@ class TwitchFollows(Chat):
         data = await make_request(self.url, params=self.params, timeout=TIMEOUT_30SF, headers=get_headers())
         if not data:
             await OAuth.refresh_credentials()
-            return TIMEOUT_30S
+            return TIMEOUT_10S
         for follow in data['data']:
             if follow['user_id'] in FOLLOWS:
                 break

@@ -10,8 +10,10 @@ services:
     stop_signal: SIGINT
     tty: true
     volumes:
+      - ./client_secret.json:/root/.config/miranda/client_secret.json
       - ./config.ini:/root/.config/miranda/config.ini:ro
       - ./twitch.json:/root/.config/miranda/twitch.json
       - ./vkplay.json:/root/.config/miranda/vkplay.json
+      - ./youtube.json:/root/.config/miranda/youtube.json
       - .:/miranda
     working_dir: /miranda

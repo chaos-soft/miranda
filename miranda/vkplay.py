@@ -4,36 +4,39 @@ import asyncio
 import json
 
 from .chat import Chat, WebSocket
-from .common import make_request, MESSAGES, STATS, D, start_after, dump_credentials, load_credentials
+from .common import make_request, MESSAGES, STATS, D, start_after, dump_credentials, load_credentials, T
 from .config import CONFIG
 
 CLIENT_ID: str = '534nwhjhsn894my7'
 CLIENT_SECRET: str = 'DjTki7eQbDA7hfSLH9znrhmdanq6lRFXbsMIHF5k2nkw5OobkVHy4eQITZmYYqcG'
-TASKS: list[asyncio.Task[None]] = []
+TASKS: T = []
 TG: asyncio.TaskGroup | None = None
-TIMEOUT_30S: int = 30
-TIMEOUT_60SF: float = 60.0
 TIMEOUT_1M: int = 1 * 60
+TIMEOUT_30S: int = 30
+TIMEOUT_30SF: float = 30.0
 
 chat_token: str = ''
-credentials: dict[str, str] = load_credentials('vkplay.json')
+file_name: str = 'vkplay.json'
 is_refresh_credentials: bool = False
 owner_id: int = 0
+credentials: dict[str, str] = load_credentials(file_name)
 
 
 @start_after('credentials', globals())
 async def get_chat_token() -> None:
     global chat_token
     url = 'https://apidev.live.vkvideo.ru/v1/websocket/token'
-    data = await make_request(url, timeout=TIMEOUT_60SF, headers=get_headers())
-    if data:
-        chat_token = data['data']['token']
-    else:
-        await OAuth.refresh_credentials()
+    while True:
+        data = await make_request(url, timeout=TIMEOUT_30SF, headers=get_headers())
+        if data:
+            chat_token = data['data']['token']
+            return None
+        else:
+            await OAuth.refresh_credentials()
 
 
 async def start() -> None:
-    if 'vkplay' not in CONFIG or TASKS:
+    if TASKS:
         return None
     if not TG:
         raise
@@ -52,7 +55,7 @@ def get_headers() -> dict[str, str]:
 def shutdown() -> None:
     for task in TASKS:
         task.cancel()
-    STATS['v'] = ''
+    TASKS.clear()
 
 
 class OAuth():
@@ -68,16 +71,17 @@ class OAuth():
 
     @classmethod
     async def get_authorization_url(cls) -> None:
-        if not credentials and not CONFIG['vkplay']['code']:
-            print('vkplay_get_authorization_url')
-            url = ''.join([
-                cls.authorization_url,
-                '?response_type=code',
-                '&client_id=', CLIENT_ID,
-                '&redirect_uri=', quote_plus(cls.redirect_uri),
-                '&state=', cls.state,
-            ])
-            MESSAGES.append(dict(id='m', text=f'<a href="{url}">Авторизация в VK Video Live</a>.'))
+        if credentials or CONFIG['vkplay']['code']:
+            return None
+        print('vkplay_get_authorization_url')
+        url = ''.join([
+            cls.authorization_url,
+            '?response_type=code',
+            '&client_id=', CLIENT_ID,
+            '&redirect_uri=', quote_plus(cls.redirect_uri),
+            '&state=', cls.state,
+        ])
+        MESSAGES.append(dict(id='m', text=f'<a href="{url}">Авторизация в VK</a>.'))
 
     @classmethod
     async def get_credentials(cls) -> None:
@@ -91,10 +95,10 @@ class OAuth():
                 'grant_type': 'authorization_code',
                 'redirect_uri': cls.redirect_uri,
             }
-            d = await make_request(cls.token_url, timeout=TIMEOUT_60SF, method='POST', data=data, headers=cls.headers)
+            d = await make_request(cls.token_url, timeout=TIMEOUT_30SF, method='POST', data=data, headers=cls.headers)
             if d:
                 credentials = d
-                dump_credentials('vkplay.json', credentials)
+                dump_credentials(file_name, credentials)
                 return None
             await asyncio.sleep(TIMEOUT_30S)
 
@@ -102,6 +106,7 @@ class OAuth():
     async def refresh_credentials(cls) -> None:
         global credentials, is_refresh_credentials
         if is_refresh_credentials:
+            await asyncio.sleep(TIMEOUT_30S)
             return None
         is_refresh_credentials = True
         print('vkplay_refresh_credentials')
@@ -110,11 +115,10 @@ class OAuth():
             'redirect_uri': cls.redirect_uri,
             'refresh_token': credentials['refresh_token'],
         }
-        credentials = {}
-        data = await make_request(cls.token_url, timeout=TIMEOUT_60SF, method='POST', data=data, headers=cls.headers)
+        data = await make_request(cls.token_url, timeout=TIMEOUT_30SF, method='POST', data=data, headers=cls.headers)
         if data:
             credentials = data
-            dump_credentials('vkplay.json', credentials)
+            dump_credentials(file_name, credentials)
         is_refresh_credentials = False
 
 
@@ -123,8 +127,8 @@ class VK(WebSocket):
 
     async def add_message(self, message: D) -> None:
         m = dict(id='v', name=message['user']['displayName'], text='', replacements=[])
-        for v in message['data'][:-1]:
-            if v['type'] in ['text', 'link']:
+        for v in message['data']:
+            if v['type'] in ['text', 'link'] and v['content']:
                 content = json.loads(v['content'])
                 m['text'] += content[0]
             elif v['type'] == 'smile':
@@ -132,6 +136,8 @@ class VK(WebSocket):
                 replacement = [v['id'], v['largeUrl']]
                 if replacement not in m['replacements']:
                     m['replacements'] += [replacement]
+            elif v['type'] == 'mention':
+                m['text'] += v['displayName']
         MESSAGES.append(m)
 
     @start_after(['chat_token', 'owner_id'], globals())
@@ -171,7 +177,7 @@ class VKStats(Chat):
 
     async def load(self) -> None:
         global owner_id
-        data = await make_request(self.url, timeout=TIMEOUT_60SF, headers=get_headers())
+        data = await make_request(self.url, timeout=TIMEOUT_30SF, headers=get_headers())
         if data:
             owner_id = data['data']['owner']['id']
             self.alert(data['data']['stream']['counters']['viewers'])

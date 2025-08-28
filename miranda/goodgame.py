@@ -2,15 +2,15 @@ import asyncio
 import json
 
 from .chat import WebSocket
-from .common import D, MESSAGES, STATS
+from .common import D, MESSAGES, STATS, T
 from .config import CONFIG
 
-TASKS: list[asyncio.Task[None]] = []
+TASKS: T = []
 TG: asyncio.TaskGroup | None = None
 
 
 async def start() -> None:
-    if 'twitch' not in CONFIG or TASKS:
+    if 'goodgame' not in CONFIG or TASKS:
         return None
     if not TG:
         raise
@@ -23,7 +23,7 @@ async def start() -> None:
 def shutdown() -> None:
     for task in TASKS:
         task.cancel()
-    STATS['g'] = ''
+    TASKS.clear()
 
 
 class GoodGame(WebSocket):
@@ -58,14 +58,17 @@ class GoodGame(WebSocket):
             'type': 'join',
         }
         await self.w.send(json.dumps(data))
+        self.add_info()
 
     def add_follower(self, data: D) -> None:
         text = CONFIG['goodgame']['text_follower'].format(data['userName'])
         MESSAGES.append(dict(id='e', text=text))
 
+    def add_info(self) -> None:
+        MESSAGES.append(dict(id='m', text='Статистика с GoodGame: онлайн, в чате.'))
+
     def add_message(self, data: D) -> None:
-        message = dict(id='g', name=data['user_name'], text=data['text'], premiums=data['premiums'])
-        MESSAGES.append(message)
+        MESSAGES.append(dict(id='g', name=data['user_name'], text=data['text'], premiums=data['premiums']))
 
     def add_payment(self, data: D) -> None:
         if data['message']:
@@ -79,7 +82,7 @@ class GoodGame(WebSocket):
         MESSAGES.append(dict(id='e', text=text))
 
     def add_stats(self, data: D) -> None:
-        STATS['g'] = f"{data['clients_in_channel']}, {data['users_in_channel']}"
+        STATS['g'] = f"{data['clients_in_channel']} {data['users_in_channel']}"
 
     def add_teleport(self, data: D) -> None:
         text = CONFIG['goodgame']['text_teleport'].format(data['streamerUsernameSrc'], data['usersCnt'])

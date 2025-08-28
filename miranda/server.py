@@ -39,8 +39,5 @@ class Server(Base):
                     'total': total,
                     'tts_api_key': self.tts_api_key,
                 }))
-                for v in ['youtube', 'twitch']:
-                    if v in CONFIG:
-                        CONFIG[v]['code'] = data.get(v, '')
         except (websockets.exceptions.ConnectionClosedError, websockets.exceptions.ConnectionClosedOK) as e:
             await self.print_exception(e)

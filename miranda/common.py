@@ -76,7 +76,9 @@ def load_credentials(name: str) -> D:
         with open(get_config_file(name)) as f:
             return json.load(f)
     except FileNotFoundError:
-        return {}
+        credentials: D = {}
+        dump_credentials(name, credentials)
+        return credentials
 
 
 def start_after(variables: str | list[str], globals_: D) -> Callable:

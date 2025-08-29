@@ -23,7 +23,7 @@ credentials: Credentials | None
 file_name: str = 'youtube.json'
 try:
     credentials = Credentials.from_authorized_user_file(get_config_file(file_name), SCOPES)
-except ValueError:
+except (ValueError, FileNotFoundError):
     credentials = None
 
 

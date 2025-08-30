@@ -57,9 +57,12 @@ def load_credentials(name: str) -> C:
 
 
 def shutdown() -> None:
+    global chat_id
     for task in TASKS:
         task.cancel()
     TASKS.clear()
+    chat_id = ''
+    video_id['video_id'] = ''
 
 
 credentials: C = load_credentials(file_name)
@@ -151,6 +154,7 @@ class YouTube(Base):
 
     @start_after('chat_id', globals())
     async def main(self) -> None:
+        self.channel = video_id['video_id']
         await self.on_start()
         self.add_info()
         request = self.youtube.liveChatMessages().list(liveChatId=chat_id, part='snippet,authorDetails')

@@ -32,6 +32,7 @@ def shutdown() -> None:
     for task in TASKS:
         task.cancel()
     TASKS.clear()
+    video_id['video_id'] = ''
 
 
 class YouTube(Chat):

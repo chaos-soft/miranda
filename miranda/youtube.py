@@ -1,5 +1,7 @@
+from typing import Union
 import asyncio
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
@@ -10,6 +12,7 @@ from .common import MESSAGES, D, get_config_file, STATS, start_after, T
 from .config import CONFIG
 from .youtube_rss import YouTubeStats, video_id
 
+C = Union[Credentials | None]
 SCOPES: list[str] = ['https://www.googleapis.com/auth/youtube.readonly']
 TASKS: T = []
 TG: asyncio.TaskGroup | None = None
@@ -19,12 +22,7 @@ TIMEOUT_30S: int = 30
 TIMEOUT_5M: int = 5 * 60
 
 chat_id: str = ''
-credentials: Credentials | None
 file_name: str = 'youtube.json'
-try:
-    credentials = Credentials.from_authorized_user_file(get_config_file(file_name), SCOPES)
-except (ValueError, FileNotFoundError):
-    credentials = None
 
 
 async def start() -> None:
@@ -33,10 +31,11 @@ async def start() -> None:
     if not TG:
         raise
     channel = CONFIG['youtube'].get('channel')
+    o = OAuthYouTube()
     y = YouTube()
-    TASKS.append(TG.create_task(OAuth.get_authorization_url()))
-    TASKS.append(TG.create_task(OAuth.get_credentials()))
-    TASKS.append(TG.create_task(OAuth.refresh_credentials()))
+    TASKS.append(TG.create_task(o.get_authorization_url()))
+    TASKS.append(TG.create_task(o.get_credentials()))
+    TASKS.append(TG.create_task(o.refresh_credentials()))
     TASKS.append(TG.create_task(y.get_chat_id()))
     TASKS.append(TG.create_task(y.main()))
     TASKS.append(TG.create_task(YouTubeStats(channel).main()))
@@ -49,59 +48,75 @@ def dump_credentials() -> None:
         f.write(credentials.to_json())
 
 
+def load_credentials(name: str) -> C:
+    try:
+        credentials = Credentials.from_authorized_user_file(get_config_file(file_name), SCOPES)
+    except (ValueError, FileNotFoundError):
+        credentials = None
+    return credentials
+
+
 def shutdown() -> None:
     for task in TASKS:
         task.cancel()
     TASKS.clear()
 
 
-class OAuth():
+credentials: C = load_credentials(file_name)
+
+
+class OAuthYouTube(Base):
     flow: Flow
     redirect_uri: str = 'http://localhost:5173'
     state: str = 'youtube-xxx'
 
-    @classmethod
-    async def get_authorization_url(cls) -> None:
+    async def get_authorization_url(self) -> None:
         if credentials or CONFIG['youtube']['code']:
             return None
         print('youtube_get_authorization_url')
-        await cls.get_flow()
-        url, cls.state = cls.flow.authorization_url(
+        await self.get_flow()
+        url, self.state = self.flow.authorization_url(
             access_type='offline',
             include_granted_scopes='true',
             prompt='consent',
         )
         MESSAGES.append(dict(id='m', text=f'<a href="{url}">Авторизация в YouTube</a>.'))
 
-    @classmethod
-    async def get_credentials(cls) -> None:
+    async def get_credentials(self) -> None:
         global credentials
         if credentials is not None or not CONFIG['youtube']['code']:
             return None
         print('youtube_get_credentials')
-        await cls.get_flow()
-        cls.flow.fetch_token(code=CONFIG['youtube']['code'])
-        credentials = cls.flow.credentials
+        await self.get_flow()
+        self.flow.fetch_token(code=CONFIG['youtube']['code'])
+        credentials = self.flow.credentials
         dump_credentials()
 
-    @classmethod
-    async def get_flow(cls) -> None:
-        cls.flow = Flow.from_client_secrets_file(
+    async def get_flow(self) -> None:
+        self.flow = Flow.from_client_secrets_file(
             get_config_file('client_secret.json'),
             scopes=SCOPES,
-            state=cls.state,
+            state=self.state,
         )
-        cls.flow.redirect_uri = cls.redirect_uri
+        self.flow.redirect_uri = self.redirect_uri
 
-    @classmethod
-    async def refresh_credentials(cls) -> None:
+    async def refresh_credentials(self) -> None:
+        global credentials
         print('youtube_refresh_credentials')
         request = Request()
         while True:
-            if credentials and not credentials.valid:
-                credentials.refresh(request)
-                dump_credentials()
-            await asyncio.sleep(TIMEOUT_5M)
+            try:
+                if credentials and not credentials.valid:
+                    credentials.refresh(request)
+                    dump_credentials()
+                await asyncio.sleep(TIMEOUT_5M)
+            except RefreshError as e:
+                await self.print_exception(e)
+                shutdown()
+                get_config_file(file_name).unlink()
+                credentials = load_credentials(file_name)
+                await start()
+                return None
 
 
 class YouTube(Base):

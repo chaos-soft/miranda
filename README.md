@@ -1,30 +1,28 @@
-# Miranda — чат для GoodGame, Sc2tv, Twitch, YouTube и VK Play Live
+# Miranda — чат для GoodGame, Twitch, VK и YouTube
 
-Документация устарела.
-
-Чат поддерживает донаты через GoodGame и Sc2tv.
+Чат поддерживает донаты через GoodGame.
 Подписки GoodGame и Twitch.
+Показывает статистику со всех порталов.
 
 ## Установка
 
 Получение:
 
-    git clone https://github.com/chaos-soft/miranda.git && cd miranda
+    git clone https://github.com/chaos-soft/miranda.git
 
 Виртуальное окружение:
 
     python3 -m venv venv
 
-Зависимости:
+Установка:
 
-    venv/bin/pip install --no-cache-dir --upgrade -r requirements.txt
+    venv/bin/pip install --no-cache-dir --upgrade -e ./miranda
 
 Все настройки хранятся в файле config.ini.
 Находиться он должен в ~/.config/miranda.
-Там же должен быть и twitch.json.
-Проще всего сделать ссылку на текущую папку:
+Получить версию по умолчанию можно командой:
 
-    ln -s $(pwd) ~/.config/miranda
+    mkdir -p ~/.config/miranda && curl -LJ -o ~/.config/miranda/config.ini https://github.com/chaos-soft/miranda/raw/refs/heads/master/config.ini
 
 Запуск:
 
@@ -32,30 +30,45 @@
 
 Либо запуск через Docker:
 
-    docker-compose up
+    docker compose up
 
-## Базовая настройка GoodGame и Twitch
+## Базовая настройка (config.ini)
 
     [goodgame]
     # Номер канала можно взять из адресной строки плеера в окне.
     channels = 22759
 
-    [sc2tv]
-    # Тут всё несколько сложнее.
-    channels = 177013
-
     [twitch]
     # Также из адресной строки.
     channels = chaos_soft
 
-## access_token для Twitch
+    [vkplay]
+    # Также из адресной строки.
+    channel = chaos-soft
 
-Используем API для получения токена и сохраняем его в
-~/.config/miranda/twitch.json.
+    [youtube]
+    # Идентификатор канала.
+    channel = UCfAAPj3rJwMW1D9ts0jtx9g
 
-    curl -X POST -d 'client_id=xxx&client_secret=xxx&grant_type=client_credentials&scope=chat:read' https://id.twitch.tv/oauth2/token > twitch.json
+## Авторизация
 
-Заполните client_id и client_secret перед выполнением запроса.
+Для корректной работы всех порталов необходимо авторизоваться на каждом из них.
+После запуска чата в [главном интерфейсе](http://localhost:5173/#/main)
+появятся ссылки для авторизации.
+После предоставления прав будет произведено перенаправление на
+http://localhost:5173.
+В адресной строке будет указан code,
+который нужно скопировать в config.ini к соответствующему сайту.
+Страницу можно закрыть.
+
+### YouTube
+
+Для YouTube требуется наличие файла client_secret.json для доступа к API.
+Предоставить его со стороны разработчика невозможно по нескольким причинам.
+Одна из них — ограничение по квоте в 10000 в день.
+Модуль настроен так, чтобы он мог работать на протяжении восьми часов.
+То есть сообщения из чата забираются раз в 15 секунд,
+а статистика обновляется раз в 10 минут.
 
 ## Настройка Яндекс-бабы (устарело)
 
@@ -77,15 +90,17 @@
 
 ## Руководство по стилю
 
-В проекте используются mypy и Flake8. Настройки для Flake8:
+В проекте используются mypy и Flake8.
+Настройки для Flake8:
 
     "--ignore=D100,D101,D102,D103,D104,D105,D106,D107",
     "--max-line-length=119"
 
 ## GoodGame
-## Playwright
-## Sc2tv
 ## Twitch
+## VK
+## YouTube
+## YouTube Playwright
 ## Команды
 ## Описание остальных параметров config.ini
 

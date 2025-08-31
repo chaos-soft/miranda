@@ -9,24 +9,24 @@ from .common import print_error
 
 class Base():
     async def on_close(self) -> None:
-        await self.print_error('остановлен.')
+        self.print_error('остановлен.')
 
     async def on_start(self) -> None:
-        await self.print_error('запущен.')
+        self.print_error('запущен.')
 
-    async def print_error(self, str_: str) -> None:
-        await print_error(f'{type(self).__name__} {str_}')
+    def print_error(self, str_: str) -> None:
+        print_error(f'{type(self).__name__} {str_}')
 
-    async def print_exception(self, e: Exception) -> None:
-        await self.print_error(f'{type(e).__name__}: {e}')
+    def print_exception(self, e: Exception) -> None:
+        self.print_error(f'{type(e).__name__}: {e}')
 
 
 class Chat(Base):
     def __init__(self, channel: int | str) -> None:
         self.channel = channel
 
-    async def print_error(self, str_: str) -> None:
-        await print_error(f'{type(self).__name__} ({self.channel}) {str_}')
+    def print_error(self, str_: str) -> None:
+        print_error(f'{type(self).__name__} ({self.channel}) {str_}')
 
 
 class WebSocket(Chat):
@@ -45,7 +45,7 @@ class WebSocket(Chat):
                     async for message in self.w:
                         await self.on_message(str(message).strip())
                 except websockets.ConnectionClosed as e:
-                    await self.print_exception(e)
+                    self.print_exception(e)
                     await self.on_close()
                     await asyncio.sleep(5)
         except asyncio.CancelledError:

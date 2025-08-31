@@ -40,4 +40,4 @@ class Server(Base):
                     'tts_api_key': self.tts_api_key,
                 }))
         except (websockets.exceptions.ConnectionClosedError, websockets.exceptions.ConnectionClosedOK) as e:
-            await self.print_exception(e)
+            self.print_exception(e)

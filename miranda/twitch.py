@@ -134,32 +134,15 @@ class Twitch(WebSocket):
     text: str = CONFIG['twitch']['text']
     url: str = 'wss://irc-ws.chat.twitch.tv'
 
-    async def add_message(self, message: D) -> None:
-        message['id'] = 't'
-        if message['user-id'] in FOLLOWS:
-            message['timestamp'] = FOLLOWS[message['user-id']]
-        message.pop('user-id')
-        message['name'] = message.pop('display-name')
-        await self.parse_emotes(message)
-        MESSAGES.append(message)
-
-    async def add_notify(self, message: D) -> None:
-        text = self.text.format(message['system-msg'].replace(r'\s', ' '))
-        MESSAGES.append(dict(id='e', text=text))
-
-    async def clean_text(self, text: str) -> str:
-        """Очищает от /me."""
-        return text[8:-1] if text.startswith('\x01') else text
-
     @start_after('credentials', globals())
     async def main(self) -> None:
         await super().main()
 
     async def on_message(self, data: str) -> None:
         if 'PRIVMSG' in data:
-            await self.add_message(await self.parse_data(data))
+            self.add_message(self.parse_data(data))
         elif 'USERNOTICE' in data:
-            await self.add_notify(await self.parse_data(data))
+            self.add_notify(self.parse_data(data))
         elif data.startswith('PING'):
             await self.send_pong(data)
 
@@ -170,18 +153,38 @@ class Twitch(WebSocket):
         await self.w.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n')
         await self.w.send(f'JOIN #{self.channel}\r\n')
 
-    async def parse_data(self, data: str) -> D:
+    async def send_pong(self, data: str) -> None:
+        await self.w.send(f'{data.replace("PING", "PONG")}\r\n')
+
+    def add_message(self, message: D) -> None:
+        message['id'] = 't'
+        if message['user-id'] in FOLLOWS:
+            message['timestamp'] = FOLLOWS[message['user-id']]
+        message.pop('user-id')
+        message['name'] = message.pop('display-name')
+        self.parse_emotes(message)
+        MESSAGES.append(message)
+
+    def add_notify(self, message: D) -> None:
+        text = self.text.format(message['system-msg'].replace(r'\s', ' '))
+        MESSAGES.append(dict(id='e', text=text))
+
+    def clean_text(self, text: str) -> str:
+        """Очищает от /me."""
+        return text[8:-1] if text.startswith('\x01') else text
+
+    def parse_data(self, data: str) -> D:
         parts = data.split(' ', 4)
         message = {}
         if len(parts) == 5:
-            message['text'] = await self.clean_text(parts[4][1:])
+            message['text'] = self.clean_text(parts[4][1:])
         for part in parts[0].split(';'):
             k, v = part.split('=')
             if v and k in self.keys:
                 message[k] = v
         return message
 
-    async def parse_emotes(self, message: D) -> None:
+    def parse_emotes(self, message: D) -> None:
         if 'emotes' not in message:
             return None
         message['replacements'] = []
@@ -199,9 +202,6 @@ class Twitch(WebSocket):
             message['text'] = message['text'].replace(r[2], r[0])
             del r[2]
 
-    async def send_pong(self, data: str) -> None:
-        await self.w.send(f'{data.replace("PING", "PONG")}\r\n')
-
 
 class TwitchFollows(Chat):
     follows_limit: int = CONFIG['twitch'].getint('follows_limit')
@@ -210,10 +210,6 @@ class TwitchFollows(Chat):
     text: str = CONFIG['twitch']['text_follower']
     # https://dev.twitch.tv/docs/api/reference/#get-channel-followers
     url: str = 'https://api.twitch.tv/helix/channels/followers'
-
-    async def alert(self, follow: dict[str, str]) -> None:
-        text = self.text.format(follow['user_name'] or follow['user_login'])
-        MESSAGES.append(dict(id='e', text=text))
 
     async def load(self) -> int:
         data = await make_request(self.url, params=self.params, timeout=TIMEOUT_30SF, headers=get_headers())
@@ -227,7 +223,7 @@ class TwitchFollows(Chat):
                 datetime.strptime(follow['followed_at'].split('T')[0], '%Y-%m-%d').timestamp(),
             )
             if not self.is_first_run:
-                await self.alert(follow)
+                self.alert(follow)
         if not self.is_first_run:
             return TIMEOUT_5M
 
@@ -238,7 +234,7 @@ class TwitchFollows(Chat):
             self.params.pop('after', None)
             self.params['first'] = 10
             self.is_first_run = False
-            await self.print_error(f'запущен ({data['total']}).')
+            self.print_error(f'запущен ({data['total']}).')
             return TIMEOUT_5M
 
     @start_after(['credentials', 'channel_id'], globals())
@@ -254,6 +250,10 @@ class TwitchFollows(Chat):
         except asyncio.CancelledError:
             await self.on_close()
             raise
+
+    def alert(self, follow: dict[str, str]) -> None:
+        text = self.text.format(follow['user_name'] or follow['user_login'])
+        MESSAGES.append(dict(id='e', text=text))
 
 
 class TwitchStats(Chat):

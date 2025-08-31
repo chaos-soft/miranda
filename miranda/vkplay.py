@@ -125,21 +125,6 @@ class OAuth():
 class VK(WebSocket):
     url: str = 'wss://pubsub-dev.live.vkvideo.ru/connection/websocket?format=json&cf_protocol_version=v2'
 
-    async def add_message(self, message: D) -> None:
-        m = dict(id='v', name=message['user']['displayName'], text='', replacements=[])
-        for v in message['data']:
-            if v['type'] in ['text', 'link'] and v['content']:
-                content = json.loads(v['content'])
-                m['text'] += content[0]
-            elif v['type'] == 'smile':
-                m['text'] += v['id']
-                replacement = [v['id'], v['largeUrl']]
-                if replacement not in m['replacements']:
-                    m['replacements'] += [replacement]
-            elif v['type'] == 'mention':
-                m['text'] += v['displayName']
-        MESSAGES.append(m)
-
     @start_after(['chat_token', 'owner_id'], globals())
     async def main(self) -> None:
         await super().main()
@@ -157,7 +142,7 @@ class VK(WebSocket):
             )
             await self.w.send(data.replace('{}', str(owner_id)))
         elif 'push' in data:
-            await self.add_message(data['push']['pub']['data']['data'])
+            self.add_message(data['push']['pub']['data']['data'])
         else:
             print(data)
 
@@ -170,6 +155,21 @@ class VK(WebSocket):
             'id': 1,
         }
         await self.w.send(json.dumps(data))
+
+    def add_message(self, message: D) -> None:
+        m = dict(id='v', name=message['user']['displayName'], text='', replacements=[])
+        for v in message['data']:
+            if v['type'] in ['text', 'link'] and v['content']:
+                content = json.loads(v['content'])
+                m['text'] += content[0]
+            elif v['type'] == 'smile':
+                m['text'] += v['id']
+                replacement = [v['id'], v['largeUrl']]
+                if replacement not in m['replacements']:
+                    m['replacements'] += [replacement]
+            elif v['type'] == 'mention':
+                m['text'] += v['displayName']
+        MESSAGES.append(m)
 
 
 class VKStats(Chat):

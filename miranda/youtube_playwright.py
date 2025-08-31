@@ -78,7 +78,7 @@ class YouTube(Chat):
                     self.add_stats()
                     await asyncio.sleep(TIMEOUT_5S)
             except TimeoutError as e:
-                await self.print_exception(e)
+                self.print_exception(e)
                 await asyncio.sleep(TIMEOUT_30S)
             except asyncio.CancelledError:
                 await self.on_close()

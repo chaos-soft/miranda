@@ -7,7 +7,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient import discovery, errors
 
-from .chat import Base
+from .chat import Base, Chat
 from .common import MESSAGES, D, get_config_file, STATS, start_after, T
 from .config import CONFIG
 from .youtube_rss import YouTubeStats, video_id
@@ -32,7 +32,7 @@ async def start() -> None:
         raise
     channel = CONFIG['youtube'].get('channel')
     o = OAuthYouTube()
-    y = YouTube()
+    y = YouTube('xxx')
     TASKS.append(TG.create_task(o.get_authorization_url()))
     TASKS.append(TG.create_task(o.get_credentials()))
     TASKS.append(TG.create_task(o.refresh_credentials()))
@@ -114,7 +114,7 @@ class OAuthYouTube(Base):
                     dump_credentials()
                 await asyncio.sleep(TIMEOUT_5M)
             except RefreshError as e:
-                await self.print_exception(e)
+                self.print_exception(e)
                 shutdown()
                 get_config_file(file_name).unlink()
                 credentials = load_credentials(file_name)
@@ -122,7 +122,7 @@ class OAuthYouTube(Base):
                 return None
 
 
-class YouTube(Base):
+class YouTube(Chat):
     likes: str = ''
     quota: int = 0
     requests: int = 0
@@ -145,11 +145,11 @@ class YouTube(Base):
                     self.viewers = response['items'][0]['liveStreamingDetails'].get('concurrentViewers', 0)
                     self.views = response['items'][0]['statistics']['viewCount']
                 else:
-                    await self.print_error('нет стримов.')
+                    self.print_error('нет стримов.')
                 self.add_stats(quota=1)
                 await asyncio.sleep(TIMEOUT_10M)
             except errors.HttpError as e:
-                await self.print_exception(e)
+                self.print_exception(e)
                 await asyncio.sleep(TIMEOUT_30S)
 
     @start_after('chat_id', globals())
@@ -171,7 +171,7 @@ class YouTube(Base):
                     timeout = TIMEOUT_15S
                 await asyncio.sleep(timeout)
             except errors.HttpError as e:
-                await self.print_exception(e)
+                self.print_exception(e)
                 await asyncio.sleep(TIMEOUT_30S)
             except asyncio.CancelledError:
                 await self.on_close()

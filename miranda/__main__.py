@@ -18,6 +18,7 @@ async def run() -> None:
         async with asyncio.TaskGroup() as tg:
             TASKS.append(tg.create_task(server.Server().main()))
             if 'commands' in CONFIG:
+                commands.TG = tg
                 TASKS.append(tg.create_task(commands.Commands().main()))
 
             if 'goodgame' in CONFIG:

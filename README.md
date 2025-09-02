@@ -70,6 +70,9 @@ http://localhost:5173.
 То есть сообщения из чата забираются раз в 15 секунд,
 а статистика обновляется раз в 10 минут.
 
+Получить client_secret.json можно в
+[Google Developers Console](https://console.developers.google.com/).
+
 ## Настройка Яндекс-бабы (устарело)
 
 Сперва необходимо получить [API-ключ](https://tech.yandex.ru/speechkit/jsapi/)

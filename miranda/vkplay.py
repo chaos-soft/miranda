@@ -157,18 +157,20 @@ class VK(WebSocket):
         await self.w.send(json.dumps(data))
 
     def add_message(self, message: D) -> None:
-        m = dict(id='v', name=message['user']['displayName'], text='', replacements=[])
+        m = dict(id='v', name=message['user']['displayName'], replacements=[])
+        text = []
         for v in message['data']:
             if v['type'] in ['text', 'link'] and v['content']:
                 content = json.loads(v['content'])
-                m['text'] += content[0]
+                text.append(content[0])
             elif v['type'] == 'smile':
-                m['text'] += v['id']
+                text.append(v['id'])
                 replacement = [v['id'], v['largeUrl']]
                 if replacement not in m['replacements']:
                     m['replacements'] += [replacement]
             elif v['type'] == 'mention':
-                m['text'] += v['displayName']
+                text.append(v['displayName'])
+        m['text'] = ' '.join(text)
         MESSAGES.append(m)
 
 
@@ -180,7 +182,8 @@ class VKStats(Chat):
         data = await make_request(self.url, timeout=TIMEOUT_30SF, headers=get_headers())
         if data:
             owner_id = data['data']['owner']['id']
-            self.alert(data['data']['stream']['counters']['viewers'])
+            if data['data']['stream']:
+                self.alert(data['data']['stream']['counters']['viewers'])
         else:
             await OAuth.refresh_credentials()
 

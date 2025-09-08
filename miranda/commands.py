@@ -3,7 +3,7 @@ import asyncio
 
 from .chat import Base
 from .common import D, EXCLUDE_IDS, MESSAGES
-from .config import CONFIG
+from .config import CONFIG, load
 
 EXCLUDE_IDS.extend(['js', 'tts'])
 INCLUDE_IDS: list[str] = ['p', 'e']
@@ -153,6 +153,9 @@ class Commands(Base):
     def print_to_console(self, message: D, command_text: str) -> None:
         if command_text:
             print(command_text)
+
+    def reload_config(self, **kwargs: D) -> None:
+        load()
 
     def shutdown_youtube(self, **kwargs: D) -> None:
         from . import youtube

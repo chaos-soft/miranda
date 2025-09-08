@@ -134,17 +134,20 @@ class VK(WebSocket):
             await self.w.send(data_str)
             return None
 
-        data = json.loads(data_str)
-        if 'connect' in data:
-            data = (
-                '{"subscribe":{"channel":"channel-chat:{}"},"id":2}\n'
-                '{"subscribe":{"channel":"channel-chat:{}#{}"},"id":3}'
-            )
-            await self.w.send(data.replace('{}', str(owner_id)))
-        elif 'push' in data:
-            self.add_message(data['push']['pub']['data']['data'])
-        else:
-            print(data)
+        try:
+            data = json.loads(data_str)
+            if 'connect' in data:
+                data = (
+                    '{"subscribe":{"channel":"channel-chat:{}"},"id":2}\n'
+                    '{"subscribe":{"channel":"channel-chat:{}#{}"},"id":3}'
+                )
+                await self.w.send(data.replace('{}', str(owner_id)))
+            elif 'push' in data:
+                self.add_message(data['push']['pub']['data']['data'])
+            else:
+                print(data)
+        except json.JSONDecodeError as e:
+            self.print_exception(e)
 
     async def on_open(self) -> None:
         data = {

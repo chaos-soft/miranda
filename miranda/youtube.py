@@ -139,13 +139,15 @@ class YouTube(Chat):
         while True:
             try:
                 response = request.execute()
-                if response['items']:
+                if not response['items']:
+                    self.print_error('нет стримов.')
+                elif 'activeLiveChatId' not in response['items'][0]['liveStreamingDetails']:
+                    self.print_error('нет активных стримов.')
+                else:
                     chat_id = response['items'][0]['liveStreamingDetails']['activeLiveChatId']
                     self.likes = response['items'][0]['statistics']['likeCount']
                     self.viewers = response['items'][0]['liveStreamingDetails'].get('concurrentViewers', 0)
                     self.views = response['items'][0]['statistics']['viewCount']
-                else:
-                    self.print_error('нет стримов.')
                 self.add_stats(quota=1)
                 await asyncio.sleep(TIMEOUT_10M)
             except errors.HttpError as e:

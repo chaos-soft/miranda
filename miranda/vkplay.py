@@ -185,14 +185,14 @@ class VKStats(Chat):
         data = await make_request(self.url, timeout=TIMEOUT_30SF, headers=get_headers())
         if data:
             owner_id = data['data']['owner']['id']
-            if data['data']['stream']:
-                self.alert(data['data']['stream']['counters']['viewers'])
+            self.alert(data['data']['stream']) if data['data']['stream'] else None
         else:
             await OAuth.refresh_credentials()
 
     @start_after('credentials', globals())
     async def main(self) -> None:
         await self.on_start()
+        self.add_info()
         self.url = self.url.format(self.channel)
         try:
             while True:
@@ -202,5 +202,12 @@ class VKStats(Chat):
             await self.on_close()
             raise
 
-    def alert(self, v: str) -> None:
-        STATS['v'] = v
+    def add_info(self) -> None:
+        MESSAGES.append(dict(id='m', text='Статистика с VK: viewers, reactions.'))
+
+    def alert(self, data: D) -> None:
+        STATS['v'] = ' '.join([
+            data['counters']['viewers'],
+            sum(map(lambda r: r['count'], data['reactions'])),
+        ])
+        print('tmp_grep', data['reactions'])

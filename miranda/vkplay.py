@@ -203,11 +203,11 @@ class VKStats(Chat):
             raise
 
     def add_info(self) -> None:
-        MESSAGES.append(dict(id='m', text='Статистика с VK: viewers, reactions.'))
+        MESSAGES.append(dict(id='m', text='Статистика с VK: views, reactions, viewers.'))
 
     def alert(self, data: D) -> None:
-        STATS['v'] = ' '.join([
-            data['counters']['viewers'],
-            sum(map(lambda r: r['count'], data['reactions'])),
-        ])
+        views: int = data['counters']['views']
+        reactions: int = sum(map(lambda r: r['count'], data['reactions']))
+        viewers: int = data['counters']['viewers']
+        STATS['v'] = f'{views} {reactions} {viewers}'
         print('tmp_grep', data['reactions'])

@@ -143,7 +143,9 @@ class VK(WebSocket):
                 )
                 await self.w.send(data.replace('{}', str(owner_id)))
             elif 'push' in data:
-                self.add_message(data['push']['pub']['data']['data'])
+                # Если сообщение не удалено.
+                if 'data' in data['push']['pub']['data']:
+                    self.add_message(data['push']['pub']['data']['data'])
             else:
                 print(data)
         except json.JSONDecodeError as e:

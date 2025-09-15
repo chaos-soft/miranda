@@ -143,11 +143,14 @@ class VK(WebSocket):
                 )
                 await self.w.send(data.replace('{}', str(owner_id)))
             elif 'push' in data:
-                # Если сообщение не удалено.
-                if 'data' in data['push']['pub']['data']:
+                if data['push']['pub']['data']['type'] == 'delete_message':
+                    pass
+                elif data['push']['pub']['data']['type'] == 'message':
                     self.add_message(data['push']['pub']['data']['data'])
+                else:
+                    print('tmp_grep', data)
             else:
-                print(data)
+                print('tmp_grep', data)
         except json.JSONDecodeError as e:
             self.print_exception(e)
 

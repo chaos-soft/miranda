@@ -25,6 +25,17 @@ chat_id: str = ''
 file_name: str = 'youtube.json'
 
 
+def load_credentials(name: str) -> C:
+    try:
+        credentials = Credentials.from_authorized_user_file(get_config_file(file_name), SCOPES)
+    except (ValueError, FileNotFoundError):
+        credentials = None
+    return credentials
+
+
+credentials: C = load_credentials(file_name)
+
+
 async def start() -> None:
     if TASKS:
         return None
@@ -33,12 +44,18 @@ async def start() -> None:
     channel = CONFIG['youtube'].get('channel')
     o = OAuthYouTube()
     y = YouTube('xxx')
-    TASKS.append(TG.create_task(o.get_authorization_url()))
-    TASKS.append(TG.create_task(o.get_credentials()))
-    TASKS.append(TG.create_task(o.refresh_credentials()))
-    TASKS.append(TG.create_task(y.get_chat_id()))
-    TASKS.append(TG.create_task(y.main()))
-    TASKS.append(TG.create_task(YouTubeStats(channel).main()))
+    try:
+        TASKS.append(TG.create_task(o.get_authorization_url()))
+        TASKS.append(TG.create_task(o.get_credentials()))
+        TASKS.append(TG.create_task(y.get_chat_id()))
+        TASKS.append(TG.create_task(y.main()))
+        TASKS.append(TG.create_task(YouTubeStats(channel).main()))
+    except RefreshError:
+        global credentials
+        shutdown()
+        get_config_file(file_name).unlink()
+        credentials = load_credentials(file_name)
+        await start()
 
 
 def dump_credentials() -> None:
@@ -48,14 +65,6 @@ def dump_credentials() -> None:
         f.write(credentials.to_json())
 
 
-def load_credentials(name: str) -> C:
-    try:
-        credentials = Credentials.from_authorized_user_file(get_config_file(file_name), SCOPES)
-    except (ValueError, FileNotFoundError):
-        credentials = None
-    return credentials
-
-
 def shutdown() -> None:
     global chat_id
     for task in TASKS:
@@ -63,9 +72,6 @@ def shutdown() -> None:
     TASKS.clear()
     chat_id = ''
     video_id['video_id'] = ''
-
-
-credentials: C = load_credentials(file_name)
 
 
 class OAuthYouTube(Base):
@@ -108,18 +114,10 @@ class OAuthYouTube(Base):
         print('youtube_refresh_credentials')
         request = Request()
         while True:
-            try:
-                if credentials and not credentials.valid:
-                    credentials.refresh(request)
-                    dump_credentials()
-                await asyncio.sleep(TIMEOUT_5M)
-            except RefreshError as e:
-                self.print_exception(e)
-                shutdown()
-                get_config_file(file_name).unlink()
-                credentials = load_credentials(file_name)
-                await start()
-                return None
+            if credentials and not credentials.valid:
+                credentials.refresh(request)
+                dump_credentials()
+            await asyncio.sleep(TIMEOUT_5M)
 
 
 class YouTube(Chat):
@@ -152,6 +150,8 @@ class YouTube(Chat):
                 await asyncio.sleep(TIMEOUT_10M)
             except errors.HttpError as e:
                 self.print_exception(e)
+                if 'quotaExceeded' in str(e):
+                    return None
                 await asyncio.sleep(TIMEOUT_30S)
 
     @start_after('chat_id', globals())

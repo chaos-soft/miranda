@@ -36,6 +36,17 @@ def load_credentials(name: str) -> C:
 credentials: C = load_credentials(file_name)
 
 
+async def catch(f) -> None:
+    try:
+        await f()
+    except* RefreshError:
+        global credentials
+        shutdown()
+        get_config_file(file_name).unlink()
+        credentials = load_credentials(file_name)
+        await start()
+
+
 async def start() -> None:
     if TASKS:
         return None
@@ -44,18 +55,11 @@ async def start() -> None:
     channel = CONFIG['youtube'].get('channel')
     o = OAuthYouTube()
     y = YouTube('xxx')
-    try:
-        TASKS.append(TG.create_task(o.get_authorization_url()))
-        TASKS.append(TG.create_task(o.get_credentials()))
-        TASKS.append(TG.create_task(y.get_chat_id()))
-        TASKS.append(TG.create_task(y.main()))
-        TASKS.append(TG.create_task(YouTubeStats(channel).main()))
-    except RefreshError:
-        global credentials
-        shutdown()
-        get_config_file(file_name).unlink()
-        credentials = load_credentials(file_name)
-        await start()
+    TASKS.append(TG.create_task(catch(o.get_authorization_url)))
+    TASKS.append(TG.create_task(catch(o.get_credentials)))
+    TASKS.append(TG.create_task(catch(y.get_chat_id)))
+    TASKS.append(TG.create_task(catch(y.main)))
+    TASKS.append(TG.create_task(catch(YouTubeStats(channel).main)))
 
 
 def dump_credentials() -> None:

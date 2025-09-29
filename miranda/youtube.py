@@ -153,8 +153,7 @@ class YouTube(Chat):
                 self.add_stats(quota=1)
                 await asyncio.sleep(TIMEOUT_10M)
             except errors.HttpError as e:
-                self.print_exception(e)
-                if 'quotaExceeded' in str(e):
+                if self.process_exception(e):
                     return None
                 await asyncio.sleep(TIMEOUT_30S)
 
@@ -177,7 +176,8 @@ class YouTube(Chat):
                     timeout = TIMEOUT_15S
                 await asyncio.sleep(timeout)
             except errors.HttpError as e:
-                self.print_exception(e)
+                if self.process_exception(e):
+                    return None
                 await asyncio.sleep(TIMEOUT_30S)
             except asyncio.CancelledError:
                 await self.on_close()
@@ -197,3 +197,10 @@ class YouTube(Chat):
         self.quota += quota
         self.requests += 1
         STATS['y'] = f'{self.views} {self.likes} {self.viewers} {self.requests} {self.quota}'
+
+    def process_exception(self, e: Exception) -> bool:
+        self.print_exception(e)
+        if 'quotaExceeded' in str(e):
+            return True
+        else:
+            return False

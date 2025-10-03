@@ -84,7 +84,7 @@ class Commands(Base):
     def add_test_messages_g(self) -> None:
         message = dict(id='g', name='chaos-soft', text='+t от friendly')
         MESSAGES.append(message.copy())
-        message['text'] = '-i https://gals.kindgirls.com/d9/ariel_09328/ariel_09328_2.jpg'
+        message['text'] = '-i https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_9.jpg'
         MESSAGES.append(message.copy())
         message['text'] = ':peka: :gta: :bearbush:'
         MESSAGES.append(message.copy())
@@ -97,7 +97,7 @@ class Commands(Base):
     def add_test_messages_s(self) -> None:
         message = dict(id='s', name='xxx', text='+t от xxx')
         MESSAGES.append(message.copy())
-        message['text'] = '-i https://gals.kindgirls.com/d9/ariel_09328/ariel_09328_8.jpg'
+        message['text'] = '-i https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_10.jpg'
         MESSAGES.append(message.copy())
         message['text'] = '@chaos обращение'
         MESSAGES.append(message.copy())
@@ -107,7 +107,7 @@ class Commands(Base):
         t = twitch.Twitch('sle')
         m = dict(id='t', name='chaos_soft', color='#ff69b4', text='+t от root')
         MESSAGES.append(m.copy())
-        m['text'] = '-i https://gals.kindgirls.com/d9/ariel_25530/ariel_25530_2.jpg'
+        m['text'] = '-i https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_4.jpg'
         MESSAGES.append(m.copy())
         m['text'] = '<] >( ;) #/ <3 <3 <3 xxx <3 <3 <3'
         m['emotes'] = '555555562:3-4/555555589:6-7/555555584:12-13,15-16,18-19,25-26,28-29,31-32'
@@ -120,7 +120,7 @@ class Commands(Base):
 
     def add_test_messages_y(self) -> None:
         message: D = dict(id='y', name='xxx_timestamp')
-        message['text'] = '-и https://gals.kindgirls.com/d9/ariel_09328/ariel_09328_8.jpg'
+        message['text'] = '-и https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_10.jpg'
         message['timestamp'] = datetime.now().timestamp() - 28 * 24 * 60 * 60
         MESSAGES.append(message.copy())
 

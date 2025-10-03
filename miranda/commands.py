@@ -30,7 +30,7 @@ def shutdown() -> None:
     TASKS.clear()
 
 
-class CommandsError(Exception):
+class KillError(Exception):
     pass
 
 
@@ -191,7 +191,7 @@ class Commands(Base):
         return is_timestamp
 
     def kill(self, **kwargs: D) -> None:
-        raise CommandsError
+        raise KillError
 
     def print_to_console(self, message: D, command_text: str) -> None:
         if command_text:

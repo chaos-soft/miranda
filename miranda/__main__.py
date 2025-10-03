@@ -52,7 +52,7 @@ async def run() -> None:
                 youtube_playwright.TG = tg
                 SHUTDOWN.append(youtube_playwright.shutdown)
                 TASKS.append(tg.create_task(youtube_playwright.start()))
-    except* commands.CommandsError:
+    except* commands.KillError:
         pass
     except* commands.RestartError:
         shutdown()

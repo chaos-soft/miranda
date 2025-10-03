@@ -1,5 +1,6 @@
 from datetime import datetime
 import asyncio
+import importlib
 
 from .chat import Base
 from .common import D, EXCLUDE_IDS, MESSAGES, get_config_file, T
@@ -196,22 +197,16 @@ class Commands(Base):
         if command_text:
             print(command_text)
 
-    def shutdown_youtube(self, **kwargs: D) -> None:
-        from . import youtube
-        youtube.shutdown()
+    def shutdown(self, message: D, command_text: str) -> None:
+        module_name = command_text
+        if module_name not in CONFIG or not TG:
+            return None
+        module = importlib.import_module(f'miranda.{module_name}')
+        module.shutdown()
 
-    def shutdown_youtube_playwright(self, **kwargs: D) -> None:
-        from . import youtube_playwright
-        youtube_playwright.shutdown()
-
-    def start_youtube(self, **kwargs: D) -> None:
-        if not TG:
-            raise
-        from . import youtube
-        TG.create_task(youtube.start())
-
-    def start_youtube_playwright(self, **kwargs: D) -> None:
-        if not TG:
-            raise
-        from . import youtube_playwright
-        TG.create_task(youtube_playwright.start())
+    def start(self, message: D, command_text: str) -> None:
+        module_name = command_text
+        if module_name not in CONFIG or not TG:
+            return None
+        module = importlib.import_module(f'miranda.{module_name}')
+        TG.create_task(module.start())

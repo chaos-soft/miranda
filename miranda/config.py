@@ -4,6 +4,8 @@ from . import common
 
 
 def load() -> None:
+    for section in CONFIG.sections():
+        CONFIG.remove_section(section)
     CONFIG.read(common.get_config_file('config.ini'))
 
 

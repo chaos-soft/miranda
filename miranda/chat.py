@@ -22,7 +22,9 @@ class Base():
 
 
 class Chat(Base):
-    def __init__(self, channel: int | str) -> None:
+    channel: str
+
+    def __init__(self, channel: str) -> None:
         self.channel = channel
 
     def print_error(self, str_: str) -> None:

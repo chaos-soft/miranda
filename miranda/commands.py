@@ -2,23 +2,51 @@ from datetime import datetime
 import asyncio
 
 from .chat import Base
-from .common import D, EXCLUDE_IDS, MESSAGES
+from .common import D, EXCLUDE_IDS, MESSAGES, get_config_file, T
 from .config import CONFIG, load
 
 EXCLUDE_IDS.extend(['js', 'tts'])
 INCLUDE_IDS: list[str] = ['p', 'e']
+TASKS: T = []
 TG: asyncio.TaskGroup | None = None
+
+config_mtime: float = get_config_file('config.ini').stat().st_mtime
+
+
+async def start() -> None:
+    if TASKS:
+        return None
+    if not TG:
+        raise
+    c = Commands()
+    TASKS.append(TG.create_task(c.main()))
+    TASKS.append(TG.create_task(c.reload_config()))
+
+
+def shutdown() -> None:
+    for task in TASKS:
+        task.cancel()
+    TASKS.clear()
 
 
 class CommandsError(Exception):
     pass
 
 
+class RestartError(Exception):
+    pass
+
+
 class Commands(Base):
-    friendly: list[str] = CONFIG['base'].getlist('friendly')
+    friendly: list[str]
     offset: int = 0
-    root: list[str] = CONFIG['base'].getlist('root')
+    root: list[str]
     start_timestamp: float = datetime.now().timestamp()
+
+    def __init__(self, *args, **kwargs) -> None:
+        self.friendly = CONFIG['base'].getlist('friendly')
+        self.root = CONFIG['base'].getlist('root')
+        super().__init__(*args, **kwargs)
 
     async def main(self) -> None:
         try:
@@ -55,6 +83,18 @@ class Commands(Base):
         except asyncio.CancelledError:
             await self.on_close()
             raise
+
+    async def reload_config(self) -> None:
+        global config_mtime
+        while True:
+            await asyncio.sleep(5)
+            mtime = get_config_file('config.ini').stat().st_mtime
+            if mtime > config_mtime:
+                config_mtime = mtime
+                load()
+                self.clean_messages()
+                self.print_error('обновился config.ini.')
+                raise RestartError
 
     def add_image(self, message: D, command_text: str) -> None:
         if command_text:
@@ -103,6 +143,8 @@ class Commands(Base):
         MESSAGES.append(message.copy())
 
     def add_test_messages_t(self) -> None:
+        if 'twitch' not in CONFIG:
+            return None
         from . import twitch
         t = twitch.Twitch('sle')
         m = dict(id='t', name='chaos_soft', color='#ff69b4', text='+t от root')
@@ -153,9 +195,6 @@ class Commands(Base):
     def print_to_console(self, message: D, command_text: str) -> None:
         if command_text:
             print(command_text)
-
-    def reload_config(self, **kwargs: D) -> None:
-        load()
 
     def shutdown_youtube(self, **kwargs: D) -> None:
         from . import youtube

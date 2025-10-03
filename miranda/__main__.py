@@ -17,9 +17,11 @@ async def run() -> None:
     try:
         async with asyncio.TaskGroup() as tg:
             TASKS.append(tg.create_task(server.Server().main()))
+
             if 'commands' in CONFIG:
                 commands.TG = tg
-                TASKS.append(tg.create_task(commands.Commands().main()))
+                SHUTDOWN.append(commands.shutdown)
+                TASKS.append(tg.create_task(commands.start()))
 
             if 'goodgame' in CONFIG:
                 from . import goodgame
@@ -52,6 +54,9 @@ async def run() -> None:
                 TASKS.append(tg.create_task(youtube_playwright.start()))
     except* commands.CommandsError:
         pass
+    except* commands.RestartError:
+        shutdown()
+        await run()
 
 
 def main() -> int:
@@ -65,6 +70,8 @@ def shutdown(*args: Any) -> None:
         shutdown()
     for task in TASKS:
         task.cancel()
+    SHUTDOWN.clear()
+    TASKS.clear()
 
 
 sys.exit(main())

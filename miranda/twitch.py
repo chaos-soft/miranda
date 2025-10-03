@@ -131,7 +131,6 @@ class OAuth():
 
 class Twitch(WebSocket):
     keys: list[str] = ['color', 'emotes', 'display-name', 'user-id', 'system-msg']
-    text: str = CONFIG['twitch']['text']
     url: str = 'wss://irc-ws.chat.twitch.tv'
 
     @start_after('credentials', globals())
@@ -166,7 +165,7 @@ class Twitch(WebSocket):
         MESSAGES.append(message)
 
     def add_notify(self, message: D) -> None:
-        text = self.text.format(message['system-msg'].replace(r'\s', ' '))
+        text = CONFIG['twitch']['text'].format(message['system-msg'].replace(r'\s', ' '))
         MESSAGES.append(dict(id='e', text=text))
 
     def clean_text(self, text: str) -> str:
@@ -204,10 +203,8 @@ class Twitch(WebSocket):
 
 
 class TwitchFollows(Chat):
-    follows_limit: int = CONFIG['twitch'].getint('follows_limit')
     is_first_run: bool = True
     params: D = {'first': 100, 'broadcaster_id': None}
-    text: str = CONFIG['twitch']['text_follower']
     # https://dev.twitch.tv/docs/api/reference/#get-channel-followers
     url: str = 'https://api.twitch.tv/helix/channels/followers'
 
@@ -227,7 +224,7 @@ class TwitchFollows(Chat):
         if not self.is_first_run:
             return TIMEOUT_5M
 
-        if len(FOLLOWS) < self.follows_limit and len(FOLLOWS) != data['total']:
+        if len(FOLLOWS) < CONFIG['twitch'].getint('follows_limit') and len(FOLLOWS) != data['total']:
             self.params['after'] = data['pagination']['cursor']
             return TIMEOUT_10S
         else:
@@ -241,8 +238,8 @@ class TwitchFollows(Chat):
     async def main(self) -> None:
         await self.on_start()
         self.params['broadcaster_id'] = channel_id
-        if self.params['first'] > self.follows_limit:
-            self.params['first'] = self.follows_limit
+        if self.params['first'] > CONFIG['twitch'].getint('follows_limit'):
+            self.params['first'] = CONFIG['twitch'].getint('follows_limit')
         try:
             while True:
                 sleep = await self.load()
@@ -252,7 +249,7 @@ class TwitchFollows(Chat):
             raise
 
     def alert(self, follow: dict[str, str]) -> None:
-        text = self.text.format(follow['user_name'] or follow['user_login'])
+        text = CONFIG['twitch']['text'].format(follow['user_name'] or follow['user_login'])
         MESSAGES.append(dict(id='e', text=text))
 
 

@@ -12,9 +12,6 @@ tipizator = Tipizator(types_load={'offset': int, 'code': str})
 
 
 class Server(Base):
-    names: list[str] = CONFIG['base'].getlist('names')
-    tts_api_key: str = CONFIG['base'].get('tts_api_key')
-
     async def main(self) -> None:
         try:
             await self.on_start()
@@ -34,10 +31,10 @@ class Server(Base):
                     offset = 0
                 await websocket.send(tipizator.dumps({
                     'messages': MESSAGES.data[offset:],
-                    'names': self.names,
+                    'names': CONFIG['base'].getlist('names'),
                     'stats': STATS,
                     'total': total,
-                    'tts_api_key': self.tts_api_key,
+                    'tts_api_key': CONFIG['base'].get('tts_api_key'),
                 }))
         except (websockets.exceptions.ConnectionClosedError, websockets.exceptions.ConnectionClosedOK) as e:
             self.print_exception(e)

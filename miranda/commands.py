@@ -105,7 +105,8 @@ class Commands(Base):
 
     def add_role(self, message: D) -> None:
         name = message['name'].lower()
-        if name in self.root:
+        name_root = '{}:{}'.format(name, message['id'])
+        if name_root in self.root:
             message['is_root'] = True
             message['name'] += ' [r]'
         elif name in self.friendly:

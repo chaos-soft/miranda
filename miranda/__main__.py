@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 import asyncio
+import importlib
 import signal
 import sys
 
@@ -9,6 +10,14 @@ from . import server
 from .common import T
 from .config import CONFIG
 
+MODULES: list[str] = [
+    'commands',
+    'goodgame',
+    'twitch',
+    'vkplay',
+    'youtube',
+    'youtube_playwright',
+]
 SHUTDOWN: list[Callable] = []
 TASKS: T = []
 
@@ -17,41 +26,12 @@ async def run() -> None:
     try:
         async with asyncio.TaskGroup() as tg:
             TASKS.append(tg.create_task(server.Server().main()))
-
-            if 'commands' in CONFIG:
-                commands.TG = tg
-                SHUTDOWN.append(commands.shutdown)
-                TASKS.append(tg.create_task(commands.start()))
-
-            if 'goodgame' in CONFIG:
-                from . import goodgame
-                goodgame.TG = tg
-                SHUTDOWN.append(goodgame.shutdown)
-                TASKS.append(tg.create_task(goodgame.start()))
-
-            if 'twitch' in CONFIG:
-                from . import twitch
-                twitch.TG = tg
-                SHUTDOWN.append(twitch.shutdown)
-                TASKS.append(tg.create_task(twitch.start()))
-
-            if 'vkplay' in CONFIG:
-                from . import vkplay
-                vkplay.TG = tg
-                SHUTDOWN.append(vkplay.shutdown)
-                TASKS.append(tg.create_task(vkplay.start()))
-
-            if 'youtube' in CONFIG:
-                from . import youtube
-                youtube.TG = tg
-                SHUTDOWN.append(youtube.shutdown)
-                TASKS.append(tg.create_task(youtube.start()))
-
-            if 'youtube_playwright' in CONFIG:
-                from . import youtube_playwright
-                youtube_playwright.TG = tg
-                SHUTDOWN.append(youtube_playwright.shutdown)
-                TASKS.append(tg.create_task(youtube_playwright.start()))
+            for module_name in MODULES:
+                if module_name in CONFIG:
+                    module = importlib.import_module(f'miranda.{module_name}')
+                    module.TG = tg  # type: ignore
+                    SHUTDOWN.append(module.shutdown)
+                    tg.create_task(module.start())
     except* commands.KillError:
         pass
     except* commands.RestartError:

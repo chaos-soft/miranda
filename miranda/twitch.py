@@ -249,7 +249,7 @@ class TwitchFollows(Chat):
             raise
 
     def alert(self, follow: dict[str, str]) -> None:
-        text = CONFIG['twitch']['text'].format(follow['user_name'] or follow['user_login'])
+        text = CONFIG['twitch']['text_follower'].format(follow['user_name'] or follow['user_login'])
         MESSAGES.append(dict(id='e', text=text))
 
 

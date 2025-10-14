@@ -29,8 +29,6 @@ def shutdown() -> None:
 class GoodGame(WebSocket):
     heartbeat: int = 20
     heartbeat_data: str = json.dumps({'type': 'ping', 'data': {}})
-    text_donate: str = CONFIG['base']['text_donate']
-    text_donate_empty: str = CONFIG['base']['text_donate_empty']
     url: str = 'wss://chat-1.goodgame.ru/chat2/'
 
     async def on_message(self, data_str: str) -> None:
@@ -72,9 +70,9 @@ class GoodGame(WebSocket):
 
     def add_payment(self, data: D) -> None:
         if data['message']:
-            text = self.text_donate.format(data['userName'], data['message'])
+            text = CONFIG['base']['text_donate'].format(data['userName'], data['message'])
         else:
-            text = self.text_donate_empty.format(data['userName'])
+            text = CONFIG['base']['text_donate_empty'].format(data['userName'])
         MESSAGES.append(dict(id='p', text=text))
 
     def add_premium(self, data: D) -> None:

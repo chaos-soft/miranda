@@ -49,17 +49,11 @@ async def make_request(
                 else:
                     return r.text
         except Exception as e:
-            await print_error(f'{type(e).__name__}: {url}')
+            print_error(f'{type(e).__name__}: {url}')
             retries -= 1
             if retries:
                 await asyncio.sleep(sleep)
     return None
-
-
-async def print_error(e: str) -> None:
-    text = f'[{str(datetime.now()).split(".")[0]}] {e}'
-    print(text)
-    MESSAGES.append(dict(id='m', text=text))
 
 
 def dump_credentials(name: str, credentials: D) -> None:
@@ -76,7 +70,15 @@ def load_credentials(name: str) -> D:
         with open(get_config_file(name)) as f:
             return json.load(f)
     except FileNotFoundError:
-        return {}
+        credentials: D = {}
+        dump_credentials(name, credentials)
+        return credentials
+
+
+def print_error(e: str) -> None:
+    text = f'[{str(datetime.now()).split(".")[0]}] {e}'
+    print(text)
+    MESSAGES.append(dict(id='m', text=text))
 
 
 def start_after(variables: str | list[str], globals_: D) -> Callable:

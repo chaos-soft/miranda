@@ -1,10 +1,6 @@
-FROM python:3.13-slim-bookworm
+FROM python:3.13-alpine
 
-COPY requirements.txt .
-
-RUN apt-get update; \
+RUN apk -U upgrade; \
+    apk add --no-cache git; \
     pip install --no-cache-dir --upgrade pip; \
-    pip install --no-cache-dir --upgrade -r requirements.txt; \
-    python -m playwright install --with-deps firefox; \
-    rm -rf /var/lib/apt/lists/*; \
-    rm requirements.txt
+    pip install --no-cache-dir --upgrade git+https://github.com/chaos-soft/miranda.git; \

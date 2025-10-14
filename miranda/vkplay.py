@@ -125,21 +125,6 @@ class OAuth():
 class VK(WebSocket):
     url: str = 'wss://pubsub-dev.live.vkvideo.ru/connection/websocket?format=json&cf_protocol_version=v2'
 
-    async def add_message(self, message: D) -> None:
-        m = dict(id='v', name=message['user']['displayName'], text='', replacements=[])
-        for v in message['data']:
-            if v['type'] in ['text', 'link'] and v['content']:
-                content = json.loads(v['content'])
-                m['text'] += content[0]
-            elif v['type'] == 'smile':
-                m['text'] += v['id']
-                replacement = [v['id'], v['largeUrl']]
-                if replacement not in m['replacements']:
-                    m['replacements'] += [replacement]
-            elif v['type'] == 'mention':
-                m['text'] += v['displayName']
-        MESSAGES.append(m)
-
     @start_after(['chat_token', 'owner_id'], globals())
     async def main(self) -> None:
         await super().main()
@@ -149,17 +134,25 @@ class VK(WebSocket):
             await self.w.send(data_str)
             return None
 
-        data = json.loads(data_str)
-        if 'connect' in data:
-            data = (
-                '{"subscribe":{"channel":"channel-chat:{}"},"id":2}\n'
-                '{"subscribe":{"channel":"channel-chat:{}#{}"},"id":3}'
-            )
-            await self.w.send(data.replace('{}', str(owner_id)))
-        elif 'push' in data:
-            await self.add_message(data['push']['pub']['data']['data'])
-        else:
-            print(data)
+        try:
+            data = json.loads(data_str)
+            if 'connect' in data:
+                data = (
+                    '{"subscribe":{"channel":"channel-chat:{}"},"id":2}\n'
+                    '{"subscribe":{"channel":"channel-chat:{}#{}"},"id":3}'
+                )
+                await self.w.send(data.replace('{}', str(owner_id)))
+            elif 'push' in data:
+                if data['push']['pub']['data']['type'] == 'delete_message':
+                    pass
+                elif data['push']['pub']['data']['type'] == 'message':
+                    self.add_message(data['push']['pub']['data']['data'])
+                else:
+                    print('tmp_grep', data)
+            else:
+                print('tmp_grep', data)
+        except json.JSONDecodeError as e:
+            self.print_exception(e)
 
     async def on_open(self) -> None:
         data = {
@@ -171,6 +164,23 @@ class VK(WebSocket):
         }
         await self.w.send(json.dumps(data))
 
+    def add_message(self, message: D) -> None:
+        m = dict(id='v', name=message['user']['displayName'], replacements=[])
+        text = []
+        for v in message['data']:
+            if v['type'] in ['text', 'link'] and v['content']:
+                content = json.loads(v['content'])
+                text.append(content[0])
+            elif v['type'] == 'smile':
+                text.append(v['id'])
+                replacement = [v['id'], v['largeUrl']]
+                if replacement not in m['replacements']:
+                    m['replacements'] += [replacement]
+            elif v['type'] == 'mention':
+                text.append(v['displayName'])
+        m['text'] = ' '.join(text)
+        MESSAGES.append(m)
+
 
 class VKStats(Chat):
     url: str = 'https://apidev.live.vkvideo.ru/v1/channel?channel_url={}'
@@ -180,13 +190,14 @@ class VKStats(Chat):
         data = await make_request(self.url, timeout=TIMEOUT_30SF, headers=get_headers())
         if data:
             owner_id = data['data']['owner']['id']
-            self.alert(data['data']['stream']['counters']['viewers'])
+            self.alert(data['data']['stream']) if data['data']['stream'] else None
         else:
             await OAuth.refresh_credentials()
 
     @start_after('credentials', globals())
     async def main(self) -> None:
         await self.on_start()
+        self.add_info()
         self.url = self.url.format(self.channel)
         try:
             while True:
@@ -196,5 +207,12 @@ class VKStats(Chat):
             await self.on_close()
             raise
 
-    def alert(self, v: str) -> None:
-        STATS['v'] = v
+    def add_info(self) -> None:
+        MESSAGES.append(dict(id='m', text='Статистика с VK: views, reactions, viewers.'))
+
+    def alert(self, data: D) -> None:
+        views: int = data['counters']['views']
+        reactions: int = sum(map(lambda r: r['count'], data['reactions']))
+        viewers: int = data['counters']['viewers']
+        STATS['v'] = f'{views} {reactions} {viewers}'
+        print('tmp_grep', data['reactions'])

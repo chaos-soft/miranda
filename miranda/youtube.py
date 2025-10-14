@@ -1,15 +1,18 @@
+from typing import Union
 import asyncio
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient import discovery, errors
 
-from .chat import Base
+from .chat import Base, Chat
 from .common import MESSAGES, D, get_config_file, STATS, start_after, T
 from .config import CONFIG
 from .youtube_rss import YouTubeStats, video_id
 
+C = Union[Credentials | None]
 SCOPES: list[str] = ['https://www.googleapis.com/auth/youtube.readonly']
 TASKS: T = []
 TG: asyncio.TaskGroup | None = None
@@ -19,12 +22,29 @@ TIMEOUT_30S: int = 30
 TIMEOUT_5M: int = 5 * 60
 
 chat_id: str = ''
-credentials: Credentials | None
 file_name: str = 'youtube.json'
-try:
-    credentials = Credentials.from_authorized_user_file(get_config_file(file_name), SCOPES)
-except ValueError:
-    credentials = None
+
+
+def load_credentials(name: str) -> C:
+    try:
+        credentials = Credentials.from_authorized_user_file(get_config_file(file_name), SCOPES)
+    except (ValueError, FileNotFoundError):
+        credentials = None
+    return credentials
+
+
+credentials: C = load_credentials(file_name)
+
+
+async def catch(f) -> None:
+    try:
+        await f()
+    except* RefreshError:
+        global credentials
+        shutdown()
+        get_config_file(file_name).unlink()
+        credentials = load_credentials(file_name)
+        await start()
 
 
 async def start() -> None:
@@ -33,13 +53,13 @@ async def start() -> None:
     if not TG:
         raise
     channel = CONFIG['youtube'].get('channel')
-    y = YouTube()
-    TASKS.append(TG.create_task(OAuth.get_authorization_url()))
-    TASKS.append(TG.create_task(OAuth.get_credentials()))
-    TASKS.append(TG.create_task(OAuth.refresh_credentials()))
-    TASKS.append(TG.create_task(y.get_chat_id()))
-    TASKS.append(TG.create_task(y.main()))
-    TASKS.append(TG.create_task(YouTubeStats(channel).main()))
+    o = OAuthYouTube()
+    y = YouTube('xxx')
+    TASKS.append(TG.create_task(catch(o.get_authorization_url)))
+    TASKS.append(TG.create_task(catch(o.get_credentials)))
+    TASKS.append(TG.create_task(catch(y.get_chat_id)))
+    TASKS.append(TG.create_task(catch(y.main)))
+    TASKS.append(TG.create_task(catch(YouTubeStats(channel).main)))
 
 
 def dump_credentials() -> None:
@@ -50,51 +70,51 @@ def dump_credentials() -> None:
 
 
 def shutdown() -> None:
+    global chat_id
     for task in TASKS:
         task.cancel()
     TASKS.clear()
+    chat_id = ''
+    video_id['video_id'] = ''
 
 
-class OAuth():
+class OAuthYouTube(Base):
     flow: Flow
     redirect_uri: str = 'http://localhost:5173'
     state: str = 'youtube-xxx'
 
-    @classmethod
-    async def get_authorization_url(cls) -> None:
+    async def get_authorization_url(self) -> None:
         if credentials or CONFIG['youtube']['code']:
             return None
         print('youtube_get_authorization_url')
-        await cls.get_flow()
-        url, cls.state = cls.flow.authorization_url(
+        await self.get_flow()
+        url, self.state = self.flow.authorization_url(
             access_type='offline',
             include_granted_scopes='true',
             prompt='consent',
         )
         MESSAGES.append(dict(id='m', text=f'<a href="{url}">Авторизация в YouTube</a>.'))
 
-    @classmethod
-    async def get_credentials(cls) -> None:
+    async def get_credentials(self) -> None:
         global credentials
         if credentials is not None or not CONFIG['youtube']['code']:
             return None
         print('youtube_get_credentials')
-        await cls.get_flow()
-        cls.flow.fetch_token(code=CONFIG['youtube']['code'])
-        credentials = cls.flow.credentials
+        await self.get_flow()
+        self.flow.fetch_token(code=CONFIG['youtube']['code'])
+        credentials = self.flow.credentials
         dump_credentials()
 
-    @classmethod
-    async def get_flow(cls) -> None:
-        cls.flow = Flow.from_client_secrets_file(
+    async def get_flow(self) -> None:
+        self.flow = Flow.from_client_secrets_file(
             get_config_file('client_secret.json'),
             scopes=SCOPES,
-            state=cls.state,
+            state=self.state,
         )
-        cls.flow.redirect_uri = cls.redirect_uri
+        self.flow.redirect_uri = self.redirect_uri
 
-    @classmethod
-    async def refresh_credentials(cls) -> None:
+    async def refresh_credentials(self) -> None:
+        global credentials
         print('youtube_refresh_credentials')
         request = Request()
         while True:
@@ -104,7 +124,7 @@ class OAuth():
             await asyncio.sleep(TIMEOUT_5M)
 
 
-class YouTube(Base):
+class YouTube(Chat):
     likes: str = ''
     quota: int = 0
     requests: int = 0
@@ -121,21 +141,25 @@ class YouTube(Base):
         while True:
             try:
                 response = request.execute()
-                if response['items']:
+                if not response['items']:
+                    self.print_error('нет стримов.')
+                elif 'activeLiveChatId' not in response['items'][0]['liveStreamingDetails']:
+                    self.print_error('нет активных стримов.')
+                else:
                     chat_id = response['items'][0]['liveStreamingDetails']['activeLiveChatId']
                     self.likes = response['items'][0]['statistics']['likeCount']
                     self.viewers = response['items'][0]['liveStreamingDetails'].get('concurrentViewers', 0)
                     self.views = response['items'][0]['statistics']['viewCount']
-                else:
-                    await self.print_error('нет стримов.')
                 self.add_stats(quota=1)
                 await asyncio.sleep(TIMEOUT_10M)
             except errors.HttpError as e:
-                await self.print_exception(e)
+                if self.process_exception(e):
+                    return None
                 await asyncio.sleep(TIMEOUT_30S)
 
     @start_after('chat_id', globals())
     async def main(self) -> None:
+        self.channel = video_id['video_id']
         await self.on_start()
         self.add_info()
         request = self.youtube.liveChatMessages().list(liveChatId=chat_id, part='snippet,authorDetails')
@@ -152,7 +176,8 @@ class YouTube(Base):
                     timeout = TIMEOUT_15S
                 await asyncio.sleep(timeout)
             except errors.HttpError as e:
-                await self.print_exception(e)
+                if self.process_exception(e):
+                    return None
                 await asyncio.sleep(TIMEOUT_30S)
             except asyncio.CancelledError:
                 await self.on_close()
@@ -172,3 +197,10 @@ class YouTube(Base):
         self.quota += quota
         self.requests += 1
         STATS['y'] = f'{self.views} {self.likes} {self.viewers} {self.requests} {self.quota}'
+
+    def process_exception(self, e: Exception) -> bool:
+        self.print_exception(e)
+        if 'quotaExceeded' in str(e):
+            return True
+        else:
+            return False

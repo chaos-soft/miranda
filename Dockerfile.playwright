@@ -1,0 +1,8 @@
+FROM python:3.13-slim-bookworm
+
+RUN apt-get update; \
+    pip install --no-cache-dir --upgrade pip; \
+    pip install --no-cache-dir --upgrade git+https://github.com/chaos-soft/miranda.git; \
+    pip install --no-cache-dir --upgrade pytest-playwright==0.7.0; \
+    python -m playwright install --with-deps firefox; \
+    rm -rf /var/lib/apt/lists/*

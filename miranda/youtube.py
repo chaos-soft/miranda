@@ -185,7 +185,7 @@ class YouTube(Chat):
 
     def add_info(self) -> None:
         MESSAGES.append(
-            dict(id='m', text='Статистика с YouTube: views, likes, viewers, requests, quota.'),
+            dict(id='m', text='Статистика с YouTube: views, likes, viewers.'),
         )
 
     def add_message(self, message: D) -> None:
@@ -196,7 +196,11 @@ class YouTube(Chat):
     def add_stats(self, quota: int) -> None:
         self.quota += quota
         self.requests += 1
-        STATS['y'] = f'{self.views} {self.likes} {self.viewers} {self.requests} {self.quota}'
+        STATS['y'] = f'{self.views} {self.likes} {self.viewers}'
+        if self.requests % 100 == 0:
+            MESSAGES.append(
+                dict(id='m', text=f'Статистика с YouTube: requests — {self.requests}, quota — {self.quota}.'),
+            )
 
     def process_exception(self, e: Exception) -> bool:
         self.print_exception(e)

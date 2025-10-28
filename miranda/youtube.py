@@ -6,6 +6,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient import discovery, errors
+from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
 
 from .chat import Base, Chat
 from .common import MESSAGES, D, get_config_file, STATS, start_after, T
@@ -86,7 +87,7 @@ class OAuthYouTube(Base):
     async def get_authorization_url(self) -> None:
         if credentials or CONFIG['youtube']['code']:
             return None
-        print('youtube_get_authorization_url')
+        await self.on_start('get_authorization_url')
         await self.get_flow()
         url, self.state = self.flow.authorization_url(
             access_type='offline',
@@ -99,11 +100,14 @@ class OAuthYouTube(Base):
         global credentials
         if credentials is not None or not CONFIG['youtube']['code']:
             return None
-        print('youtube_get_credentials')
+        await self.on_start('get_credentials')
         await self.get_flow()
-        self.flow.fetch_token(code=CONFIG['youtube']['code'])
-        credentials = self.flow.credentials
-        dump_credentials()
+        try:
+            self.flow.fetch_token(code=CONFIG['youtube']['code'])
+            credentials = self.flow.credentials
+            dump_credentials()
+        except InvalidGrantError as e:
+            self.print_exception(e)
 
     async def get_flow(self) -> None:
         self.flow = Flow.from_client_secrets_file(
@@ -115,7 +119,7 @@ class OAuthYouTube(Base):
 
     async def refresh_credentials(self) -> None:
         global credentials
-        print('youtube_refresh_credentials')
+        await self.on_start('refresh_credentials')
         request = Request()
         while True:
             if credentials and not credentials.valid:

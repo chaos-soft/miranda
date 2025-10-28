@@ -11,8 +11,11 @@ class Base():
     async def on_close(self) -> None:
         self.print_error('остановлен.')
 
-    async def on_start(self) -> None:
-        self.print_error('запущен.')
+    async def on_start(self, str_: str = '') -> None:
+        if str_:
+            self.print_error(f'{str_} запущен.')
+        else:
+            self.print_error('запущен.')
 
     def print_error(self, str_: str) -> None:
         print_error(f'{type(self).__name__} {str_}')

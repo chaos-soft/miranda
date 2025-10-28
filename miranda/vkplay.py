@@ -15,10 +15,10 @@ TIMEOUT_1M: int = 1 * 60
 TIMEOUT_30S: int = 30
 TIMEOUT_30SF: float = 30.0
 
+channel_id: int = 0
 chat_token: str = ''
 file_name: str = 'vkplay.json'
 is_refresh_credentials: bool = False
-owner_id: int = 0
 credentials: dict[str, str] = load_credentials(file_name)
 
 
@@ -125,7 +125,7 @@ class OAuth():
 class VK(WebSocket):
     url: str = 'wss://pubsub-dev.live.vkvideo.ru/connection/websocket?format=json&cf_protocol_version=v2'
 
-    @start_after(['chat_token', 'owner_id'], globals())
+    @start_after(['chat_token', 'channel_id'], globals())
     async def main(self) -> None:
         await super().main()
 
@@ -134,25 +134,20 @@ class VK(WebSocket):
             await self.w.send(data_str)
             return None
 
-        try:
-            data = json.loads(data_str)
+        for v in data_str.split('\n'):
+            data = json.loads(v)
             if 'connect' in data:
-                data = (
-                    '{"subscribe":{"channel":"channel-chat:{}"},"id":2}\n'
-                    '{"subscribe":{"channel":"channel-chat:{}#{}"},"id":3}'
-                )
-                await self.w.send(data.replace('{}', str(owner_id)))
+                data = '{"subscribe":{"channel":"channel-chat:{}"},"id":2}'
+                await self.w.send(data.replace('{}', str(channel_id)))
             elif 'push' in data:
                 if data['push']['pub']['data']['type'] == 'delete_message':
                     pass
                 elif data['push']['pub']['data']['type'] == 'message':
                     self.add_message(data['push']['pub']['data']['data'])
                 else:
-                    print('tmp_grep', data)
+                    print('tmp_grep push', data)
             else:
-                print('tmp_grep', data)
-        except json.JSONDecodeError as e:
-            self.print_exception(e)
+                print('tmp_grep else', data)
 
     async def on_open(self) -> None:
         data = {
@@ -186,10 +181,10 @@ class VKStats(Chat):
     url: str = 'https://apidev.live.vkvideo.ru/v1/channel?channel_url={}'
 
     async def load(self) -> None:
-        global owner_id
+        global channel_id
         data = await make_request(self.url, timeout=TIMEOUT_30SF, headers=get_headers())
         if data:
-            owner_id = data['data']['owner']['id']
+            channel_id = data['data']['channel']['id']
             self.alert(data['data']['stream']) if data['data']['stream'] else None
         else:
             await OAuth.refresh_credentials()
@@ -215,4 +210,4 @@ class VKStats(Chat):
         reactions: int = sum(map(lambda r: r['count'], data['reactions']))
         viewers: int = data['counters']['viewers']
         STATS['v'] = f'{views} {reactions} {viewers}'
-        print('tmp_grep', data['reactions'])
+        print('tmp_grep alert', data['reactions'])

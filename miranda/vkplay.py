@@ -160,17 +160,16 @@ class VK(WebSocket):
         await self.w.send(json.dumps(data))
 
     def add_message(self, message: D) -> None:
-        m = dict(id='v', name=message['user']['displayName'], replacements=[])
+        m = dict(id='v', name=message['user']['displayName'], images={})
         text = []
-        for v in message['data']:
+        for i, v in enumerate(message['data']):
             if v['type'] in ['text', 'link'] and v['content']:
                 content = json.loads(v['content'])
                 text.append(content[0])
             elif v['type'] == 'smile':
-                text.append(v['id'])
-                replacement = [v['id'], v['largeUrl']]
-                if replacement not in m['replacements']:
-                    m['replacements'] += [replacement]
+                k = f':{i}:'
+                m['images'][k] = v['largeUrl']
+                text.append(k)
             elif v['type'] == 'mention':
                 text.append(v['displayName'])
         m['text'] = ' '.join(text)

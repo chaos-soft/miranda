@@ -99,9 +99,11 @@ class Commands(Base):
 
     def add_image(self, message: D, command_text: str) -> None:
         if command_text:
-            if 'replacements' not in message:
-                message['replacements'] = []
-            message['replacements'].append(command_text)
+            if 'images' not in message:
+                message['images'] = {}
+            k = '{image}'
+            message['images'][k] = command_text
+            message['text'] = message['text'].replace(command_text, k)
 
     def add_role(self, message: D) -> None:
         name = message['name'].lower()
@@ -137,7 +139,7 @@ class Commands(Base):
         MESSAGES.append(message.copy())
 
     def add_test_messages_s(self) -> None:
-        message = dict(id='s', name='xxx', text='+t от xxx')
+        message = dict(id='v', name='xxx', text='+t от xxx')
         MESSAGES.append(message.copy())
         message['text'] = '-i https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_10.jpg'
         MESSAGES.append(message.copy())

@@ -4,31 +4,17 @@ from functools import wraps
 from pathlib import Path
 from typing import Any
 import asyncio
-import collections
-import html
 import json
 
 import httpx
 
 D = dict[str, Any]
-EXCLUDE_IDS: list[str] = ['m']
-STATS: dict[str, int | str] = {}
 T = list[asyncio.Task]
+
+EXCLUDE_IDS: list[str] = ['m']
+MESSAGES: list[D] = []
+STATS: dict[str, int | str] = {}
 TIMEOUT_5S: int = 5
-
-
-class UserList(collections.UserList[D]):
-    """Список с кастомизированным append().
-
-    Метод применяет html.escape к message['text'],
-    если message['id'] не в EXCLUDE_IDS.
-
-    """
-
-    def append(self, message: D) -> None:
-        if message['id'] not in EXCLUDE_IDS:
-            message['text'] = html.escape(message['text'], quote=True)
-        super().append(message)
 
 
 async def make_request(
@@ -103,6 +89,3 @@ def start_after(variables: str | list[str], globals_: D) -> Callable:
 def str_to_list(str_: str) -> list[str]:
     """Парсит строку с запятыми в массив."""
     return list(map(str.strip, str_.split(',')))
-
-
-MESSAGES: UserList = UserList()

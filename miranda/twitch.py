@@ -186,20 +186,14 @@ class Twitch(WebSocket):
     def parse_emotes(self, message: D) -> None:
         if 'emotes' not in message:
             return None
-        message['replacements'] = []
-        for i, emote in enumerate(message['emotes'].split('/')):
+        images = {}
+        for emote in message['emotes'].split('/'):
             id, indexes = emote.split(':')
             indexes = indexes.split(',', 1)[0].split('-')
-            message['replacements'] += [[
-                f'image{i}',
-                id,
-                message['text'][int(indexes[0]):int(indexes[1]) + 1],
-            ]]
+            k = message['text'][int(indexes[0]):int(indexes[1]) + 1]
+            images[k] = f'https://static-cdn.jtvnw.net/emoticons/v2/{id}/static/light/3.0'
         message.pop('emotes')
-        message['replacements'].sort(key=lambda r: r[1], reverse=True)
-        for r in message['replacements']:
-            message['text'] = message['text'].replace(r[2], r[0])
-            del r[2]
+        message['images'] = dict(sorted(images.items(), key=lambda v: len(v[0]), reverse=True))
 
 
 class TwitchFollows(Chat):

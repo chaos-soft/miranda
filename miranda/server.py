@@ -8,7 +8,7 @@ from .common import MESSAGES, STATS
 from .config import CONFIG
 from .tipizator import Tipizator
 
-tipizator = Tipizator(types_load={'offset': int, 'code': str})
+tipizator = Tipizator(types_load={'offset': int})
 
 
 class Server(Base):
@@ -30,7 +30,7 @@ class Server(Base):
                 if offset > total:
                     offset = 0
                 await websocket.send(tipizator.dumps({
-                    'messages': MESSAGES.data[offset:],
+                    'messages': MESSAGES[offset:],
                     'names': CONFIG['base'].getlist('names'),
                     'stats': STATS,
                     'total': total,

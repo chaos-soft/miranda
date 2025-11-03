@@ -2,7 +2,7 @@ import asyncio
 import json
 
 from .chat import WebSocket
-from .common import D, MESSAGES, STATS, T
+from .common import D, MESSAGES, STATS, T, loop
 from .config import CONFIG
 
 TASKS: T = []
@@ -17,7 +17,7 @@ async def start() -> None:
     for channel in CONFIG['goodgame'].getlist('channels'):
         g = GoodGame(channel)
         TASKS.append(TG.create_task(g.main()))
-        TASKS.append(TG.create_task(g.send_heartbeat()))
+        TASKS.append(TG.create_task(loop(g.send_heartbeat, timeout=20)))
 
 
 def shutdown() -> None:
@@ -27,7 +27,6 @@ def shutdown() -> None:
 
 
 class GoodGame(WebSocket):
-    heartbeat: int = 20
     heartbeat_data: str = json.dumps({'type': 'ping', 'data': {}})
     url: str = 'wss://chat-1.goodgame.ru/chat2/'
 

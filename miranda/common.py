@@ -17,6 +17,12 @@ STATS: dict[str, int | str] = {}
 TIMEOUT_5S: int = 5
 
 
+async def loop(f: Callable, timeout: int = TIMEOUT_5S) -> None:
+    while True:
+        await asyncio.sleep(timeout)
+        await f()
+
+
 async def make_request(
     url: str,
     retries: int = 1,

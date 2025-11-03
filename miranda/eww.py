@@ -20,7 +20,6 @@ async def start() -> None:
         raise
     e = EwwClient('xxx')
     TASKS.append(TG.create_task(e.main()))
-    TASKS.append(TG.create_task(e.send_heartbeat()))
     get_cache_path().mkdir(mode=0o755, parents=True, exist_ok=True)
 
 
@@ -36,11 +35,13 @@ def shutdown() -> None:
 
 class EwwClient(WebSocket):
     box: str = '(box :space-evenly false :vexpand true :spacing 4 {})'
+    exclude_ids = EXCLUDE_IDS + ['e']
     heartbeat: int = 5
-    heartbeat_data: str = '{"offset":0}'
+    heartbeat_data: str = '{"offset":-2}'
     icon: str = '(image :path "{}" :image-width 16)'
     image: str = '(image :path "{}")'
     label: str = '(label :text "{}")'
+    name: str = '(label :text "{}:" :show-truncated false)'
     table: Any = str.maketrans({'"': r'\"'})
     url: str = CONFIG['eww']['url']
 
@@ -52,19 +53,21 @@ class EwwClient(WebSocket):
         return file_path
 
     async def eww_update(self, v: str) -> None:
+        proc = await asyncio.create_subprocess_exec('eww', 'open', 'chat')
+        await proc.wait()
+
         proc = await asyncio.create_subprocess_exec('eww', 'update', f'message={v}')
         await proc.wait()
 
         proc = await asyncio.create_subprocess_shell('eww update chat_selected=1')
         await proc.wait()
-        await asyncio.sleep(10)
+        await asyncio.sleep(CONFIG['eww'].getint('interval'))
 
         proc = await asyncio.create_subprocess_shell('eww update chat_selected=0')
         await proc.wait()
         await asyncio.sleep(0.5)
 
-        # Обнулить размер на экране.
-        proc = await asyncio.create_subprocess_exec('eww', 'update', 'message=')
+        proc = await asyncio.create_subprocess_exec('eww', 'close', 'chat')
         await proc.wait()
 
     async def get_image(self, url: str) -> str:
@@ -73,9 +76,8 @@ class EwwClient(WebSocket):
 
     async def on_message(self, data_str: str) -> None:
         data = json.loads(data_str)
-        self.heartbeat_data = json.dumps({'offset': data['total']})
         for message in data['messages']:
-            if message['id'] in EXCLUDE_IDS:
+            if message['id'] in self.exclude_ids:
                 continue
             elements: list[str] = list(filter(None, message['text'].translate(self.table).split(' ')))
             id = message['id']
@@ -83,11 +85,18 @@ class EwwClient(WebSocket):
             v = self.box.format(
                 '{} {} {}'.format(
                     self.get_icon(message),
-                    self.get_label(message['name'] + ':'),
+                    self.get_name(message['name']),
                     ' '.join([await self.process(text, images, id) for text in elements]),
                 ),
             )
             await self.eww_update(v)
+        if not data['messages']:
+            await asyncio.sleep(self.heartbeat)
+        self.heartbeat_data = json.dumps({'offset': data['total']})
+        await self.send_heartbeat()
+
+    async def on_open(self) -> None:
+        await self.send_heartbeat()
 
     async def process(self, text: str, images: D, id: str) -> str:
         if id == 'g':
@@ -108,3 +117,6 @@ class EwwClient(WebSocket):
 
     def get_label(self, text: str) -> str:
         return self.label.format(text)
+
+    def get_name(self, name: str) -> str:
+        return self.name.format(name)

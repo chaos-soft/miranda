@@ -35,7 +35,6 @@ class Chat(Base):
 
 
 class WebSocket(Chat):
-    heartbeat: int = 0
     heartbeat_data: str = ''
     re_code: Any = re.compile(r'^\d+')
     url: str = ''
@@ -70,10 +69,8 @@ class WebSocket(Chat):
         pass
 
     async def send_heartbeat(self) -> None:
-        while True:
-            await asyncio.sleep(self.heartbeat)
-            if self.w:
-                try:
-                    await self.w.send(self.heartbeat_data)
-                except websockets.ConnectionClosed:
-                    pass
+        if self.w:
+            try:
+                await self.w.send(self.heartbeat_data)
+            except websockets.ConnectionClosed:
+                pass

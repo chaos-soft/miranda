@@ -13,6 +13,16 @@ TASKS: T = []
 TG: asyncio.TaskGroup | None = None
 
 
+def get_cache_path() -> Path:
+    return Path.home() / '.cache' / 'miranda'
+
+
+file_path = get_cache_path() / 'smiles.json'
+if not file_path.exists():
+    raise FileNotFoundError(file_path)
+SMILES: D = json.load(file_path.open())
+
+
 async def start() -> None:
     if TASKS:
         return None
@@ -21,10 +31,6 @@ async def start() -> None:
     e = EwwClient('xxx')
     TASKS.append(TG.create_task(e.main()))
     get_cache_path().mkdir(mode=0o755, parents=True, exist_ok=True)
-
-
-def get_cache_path() -> Path:
-    return Path.home() / '.cache' / 'miranda'
 
 
 def shutdown() -> None:
@@ -99,9 +105,10 @@ class EwwClient(WebSocket):
         await self.send_heartbeat()
 
     async def process(self, text: str, images: D, id: str) -> str:
-        if id == 'g':
-            if text.startswith(':') and text.endswith(':'):
-                images[text] = f'https://goodgame.ru/images/smiles/{text[1:-1]}-big.png'
+        if id == 'g' and \
+           text.startswith(':') and text.endswith(':') and \
+           (smile_id := text[1:-1]) in SMILES:
+            images[text] = SMILES[smile_id]
 
         for k, v in images.items():
             if k in text:

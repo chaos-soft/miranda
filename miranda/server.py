@@ -36,5 +36,5 @@ class Server(Base):
                     'total': total,
                     'tts_api_key': CONFIG['base'].get('tts_api_key'),
                 }))
-        except (websockets.exceptions.ConnectionClosedError, websockets.exceptions.ConnectionClosedOK) as e:
+        except (websockets.exceptions.ConnectionClosedError, websockets.exceptions.ConnectionClosedOK, TypeError) as e:
             self.print_exception(e)

@@ -1,3 +1,4 @@
+from abc import ABCMeta
 from collections.abc import Callable
 from datetime import datetime
 from functools import wraps
@@ -11,10 +12,43 @@ import httpx
 D = dict[str, Any]
 T = list[asyncio.Task]
 
-EXCLUDE_IDS: list[str] = ['m']
-MESSAGES: list[D] = []
 STATS: dict[str, int | str] = {}
 TIMEOUT_5S: int = 5
+
+
+class MessageABC(metaclass=ABCMeta):
+    id: str
+    images: D
+    name: str
+    text: str
+
+    def __init__(self, **kwargs: Any) -> None:
+        self.images = {}
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def get(self, k: str, default: Any = None) -> Any:
+        return getattr(self, k, default)
+
+    def to_dict(self) -> D:
+        return {'id': self.id, 'images': self.images, 'name': self.name, 'text': self.text}
+
+
+class MessageMiranda(MessageABC):
+    id = 'm'
+    is_donate: bool = False
+    is_event: bool = False
+    is_js: bool = False
+    is_tts: bool = False
+    name = 'Miranda'
+
+    def to_dict(self) -> D:
+        d = super().to_dict()
+        d['is_donate'] = self.is_donate
+        d['is_event'] = self.is_event
+        d['is_js'] = self.is_js
+        d['is_tts'] = self.is_tts
+        return d
 
 
 async def loop(f: Callable, timeout: int = TIMEOUT_5S) -> None:
@@ -67,19 +101,23 @@ def load_credentials(name: str) -> D:
         return credentials
 
 
+def messages_to_dict(messages: list[MessageABC]) -> list[dict]:
+    return [v if type(v) is dict else v.to_dict() for v in messages]
+
+
 def print_error(e: str) -> None:
     text = f'[{str(datetime.now()).split(".")[0]}] {e}'
     print(text)
-    MESSAGES.append(dict(id='m', text=text))
+    MESSAGES.append(MessageMiranda(text=text))
 
 
 def start_after(variables: str | list[str], globals_: D) -> Callable:
     if type(variables) is str:
         variables = [variables]
 
-    def decorator(f):
+    def decorator(f: Callable) -> Callable:
         @wraps(f)
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: Any, **kwargs: Any) -> Callable:
             for variable in variables:
                 while True:
                     v = globals_[variable]
@@ -95,3 +133,6 @@ def start_after(variables: str | list[str], globals_: D) -> Callable:
 def str_to_list(str_: str) -> list[str]:
     """Парсит строку с запятыми в массив."""
     return list(map(str.strip, str_.split(',')))
+
+
+MESSAGES: list[MessageABC] = []

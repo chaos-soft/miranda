@@ -5,7 +5,7 @@ import asyncio
 import json
 
 from .chat import WebSocket
-from .common import T, D, EXCLUDE_IDS
+from .common import T, D, MessageMiranda
 from .config import CONFIG
 
 ICONS: D = {'g': 'g.png', 't': 't.ico', 'y': 'y.ico', 'v': 'v.png'}
@@ -41,7 +41,6 @@ def shutdown() -> None:
 
 class EwwClient(WebSocket):
     box: str = '(box :space-evenly false :vexpand true :spacing 4 {})'
-    exclude_ids = EXCLUDE_IDS + ['e']
     heartbeat: int = 5
     heartbeat_data: str = '{"offset":-2}'
     icon: str = '(image :path "{}" :image-width 16)'
@@ -83,11 +82,11 @@ class EwwClient(WebSocket):
     async def on_message(self, data_str: str) -> None:
         data = json.loads(data_str)
         for message in data['messages']:
-            if message['id'] in self.exclude_ids:
+            if message['id'] == MessageMiranda.id:
                 continue
             elements: list[str] = list(filter(None, message['text'].translate(self.table).split(' ')))
             id = message['id']
-            images = message.get('images', {})
+            images = message['images']
             v = self.box.format(
                 '{} {} {}'.format(
                     self.get_icon(message),

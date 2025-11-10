@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Union
 import asyncio
 
@@ -9,7 +10,7 @@ from googleapiclient import discovery, errors
 from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
 
 from .chat import Base, Chat
-from .common import MESSAGES, D, get_config_file, STATS, start_after, T
+from .common import MESSAGES, D, get_config_file, STATS, start_after, T, MessageABC, MessageMiranda
 from .config import CONFIG
 from .youtube_rss import YouTubeStats, video_id
 
@@ -37,7 +38,7 @@ def load_credentials(name: str) -> C:
 credentials: C = load_credentials(file_name)
 
 
-async def catch(f) -> None:
+async def catch(f: Callable) -> None:
     try:
         await f()
     except* RefreshError:
@@ -79,6 +80,10 @@ def shutdown() -> None:
     video_id['video_id'] = ''
 
 
+class Message(MessageABC):
+    id = 'y'
+
+
 class OAuthYouTube(Base):
     flow: Flow
     redirect_uri: str = 'http://localhost:5173'
@@ -94,7 +99,8 @@ class OAuthYouTube(Base):
             include_granted_scopes='true',
             prompt='consent',
         )
-        MESSAGES.append(dict(id='m', text=f'<a href="{url}">Авторизация в YouTube</a>.'))
+        text = f'<a href="{url}">Авторизация в YouTube</a>.'
+        MESSAGES.append(MessageMiranda(text=text))
 
     async def get_credentials(self) -> None:
         global credentials
@@ -188,23 +194,21 @@ class YouTube(Chat):
                 raise
 
     def add_info(self) -> None:
-        MESSAGES.append(
-            dict(id='m', text='Статистика с YouTube: views, likes, viewers.'),
-        )
+        text = 'Статистика с YouTube: views, likes, viewers.'
+        MESSAGES.append(MessageMiranda(text=text))
 
     def add_message(self, message: D) -> None:
-        MESSAGES.append(
-            dict(id='y', text=message['snippet']['displayMessage'], name=message['authorDetails']['displayName']),
-        )
+        name = message['authorDetails']['displayName']
+        text = message['snippet']['displayMessage']
+        MESSAGES.append(Message(text=text, name=name))
 
     def add_stats(self, quota: int) -> None:
         self.quota += quota
         self.requests += 1
         STATS['y'] = f'{self.views} {self.likes} {self.viewers}'
         if self.requests % 100 == 0:
-            MESSAGES.append(
-                dict(id='m', text=f'Статистика с YouTube: requests — {self.requests}, quota — {self.quota}.'),
-            )
+            text = f'Статистика с YouTube: requests — {self.requests}, quota — {self.quota}.'
+            MESSAGES.append(MessageMiranda(text=text))
 
     def process_exception(self, e: Exception) -> bool:
         self.print_exception(e)

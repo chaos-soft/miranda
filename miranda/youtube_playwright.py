@@ -5,7 +5,7 @@ from playwright._impl._errors import TimeoutError
 from playwright.async_api import Locator, Page, async_playwright, Route
 
 from .chat import Chat
-from .common import MESSAGES, T, start_after, STATS
+from .common import MESSAGES, T, start_after, STATS, MessageABC, MessageMiranda
 from .config import CONFIG
 from .youtube_rss import YouTubeStats, video_id
 
@@ -35,6 +35,10 @@ def shutdown() -> None:
     video_id['video_id'] = ''
 
 
+class Message(MessageABC):
+    id = 'y'
+
+
 class YouTube(Chat):
     browser: Any
     page: Page
@@ -42,11 +46,9 @@ class YouTube(Chat):
     url: str = 'youtube.com'
 
     async def add_message(self, message: Locator) -> None:
-        MESSAGES.extend([dict(
-            id='y',
-            name=await message.locator('#author-name').inner_text(),
-            text=await message.locator('#message').inner_html(),
-        )])
+        name = message.locator('#author-name').inner_text()
+        text = message.locator('#message').inner_html()
+        MESSAGES.append(Message(text=text, name=name))
 
     async def handle_route(self, route: Route) -> None:
         if route.request.resource_type in ['image', 'stylesheet', 'font', 'xhr'] or \
@@ -94,7 +96,8 @@ class YouTube(Chat):
         self.page = await context.new_page()
 
     def add_info(self) -> None:
-        MESSAGES.append(dict(id='m', text='Статистика с YouTube: views, likes.'))
+        text = 'Статистика с YouTube: views, likes.'
+        MESSAGES.append(MessageMiranda(text=text))
 
     def add_stats(self) -> None:
         STATS['y'] = STATS['ys']

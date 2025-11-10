@@ -4,11 +4,11 @@ import asyncio
 import websockets
 
 from .chat import Base
-from .common import MESSAGES, STATS
+from .common import MESSAGES, STATS, messages_to_dict
 from .config import CONFIG
 from .tipizator import Tipizator
 
-tipizator = Tipizator(types_load={'offset': int})
+tipizator = Tipizator(types_load={'offset': int}, types_dump={'messages': messages_to_dict})
 
 
 class Server(Base):

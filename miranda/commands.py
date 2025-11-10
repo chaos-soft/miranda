@@ -1,13 +1,16 @@
 from datetime import datetime
+from typing import Any
 import asyncio
 import importlib
 
 from .chat import Base
-from .common import D, EXCLUDE_IDS, MESSAGES, get_config_file, T
+from .common import MESSAGES, get_config_file, T, MessageABC, MessageMiranda
 from .config import CONFIG, load
+from .goodgame import Message as MG
+from .twitch import Message as MT, Twitch
+from .vkplay import Message as MV
+from .youtube import Message as MY
 
-EXCLUDE_IDS.extend(['js', 'tts'])
-INCLUDE_IDS: list[str] = ['p', 'e']
 TASKS: T = []
 TG: asyncio.TaskGroup | None = None
 
@@ -44,10 +47,9 @@ class Commands(Base):
     root: list[str]
     start_timestamp: float = datetime.now().timestamp()
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self) -> None:
         self.friendly = CONFIG['base'].getlist('friendly')
         self.root = CONFIG['base'].getlist('root')
-        super().__init__(*args, **kwargs)
 
     async def main(self) -> None:
         try:
@@ -58,27 +60,26 @@ class Commands(Base):
             while True:
                 for message in MESSAGES[self.offset:]:
                     self.offset += 1
-                    if message['id'] in EXCLUDE_IDS:
+                    if type(message) is MessageMiranda:
                         continue
-                    # В этих типах сообщений нет имен.
-                    if message['id'] not in INCLUDE_IDS:
-                        self.add_role(message)
+                    # Обработка имён.
+                    is_friendly = self.is_friendly(message)
+                    is_root = self.is_root(message)
                     # Параметры команды.
                     # p = ['имя метода', 'владелец', 'время с подписки']
                     for k, p in commands.items():
-                        if message['text'].startswith(k):
+                        if message.text.startswith(k):
                             break
                     else:
                         continue
                     # Может ли пользователь использовать команду.
-                    if message.get('is_root') or \
-                       message['id'] in INCLUDE_IDS or \
-                       (p[1] == 'follows' and message.get('is_friendly')) or \
+                    if is_root or \
+                       (p[1] == 'follows' and is_friendly) or \
                        p[1] == '*' or \
                        (p[1] == 'follows' and self.is_timestamp(message, p)):
                         getattr(self, p[0])(
                             message=message,
-                            command_text=message['text'][len(k):].strip(),
+                            command_text=message.text[len(k):].strip(),
                         )
                 await asyncio.sleep(0.5)
         except asyncio.CancelledError:
@@ -97,92 +98,114 @@ class Commands(Base):
                 self.print_error('обновился config.ini.')
                 raise RestartError
 
-    def add_image(self, message: D, command_text: str) -> None:
+    def add_image(self, message: MessageABC, command_text: str) -> None:
         if command_text:
-            if 'images' not in message:
-                message['images'] = {}
             k = '{image}'
-            message['images'][k] = command_text
-            message['text'] = message['text'].replace(command_text, k)
+            message.images[k] = command_text
+            message.text = message.text.replace(command_text, k)
 
-    def add_role(self, message: D) -> None:
-        name = message['name'].lower()
-        name_root = '{}:{}'.format(name, message['id'])
-        if name_root in self.root:
-            message['is_root'] = True
-            message['name'] += ' [r]'
-        elif name in self.friendly:
-            message['is_friendly'] = True
-            message['name'] += ' [f]'
+    def add_secret(self, **kwargs: Any) -> None:
+        text = 'xxx'
+        MESSAGES.append(MessageMiranda(text=text))
 
-    def add_secret(self, **kwargs: D) -> None:
-        MESSAGES.append(dict(id='m', text='xxx'))
-
-    def add_test_messages(self, **kwargs: D) -> None:
+    def add_test_messages(self, **kwargs: Any) -> None:
         self.add_test_messages_t()
         self.add_test_messages_g()
         self.add_test_messages_s()
         self.add_test_messages_y()
-        self.add_test_messages_p()
+        self.add_test_messages_d()
 
     def add_test_messages_g(self) -> None:
-        message = dict(id='g', name='chaos-soft', text='+t от friendly')
-        MESSAGES.append(message.copy())
-        message['text'] = '-i https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_9.jpg'
-        MESSAGES.append(message.copy())
-        message['text'] = ':peka: :gta: :bearbush:'
-        MESSAGES.append(message.copy())
+        name = 'chaos-soft'
 
-    def add_test_messages_p(self) -> None:
-        message = dict(id='p', name='xxx')
-        message['text'] = '+t xxx задонатил и не сказал ничего.'
-        MESSAGES.append(message.copy())
+        text = '-t от friendly'
+        MESSAGES.append(MG(text=text, name=name))
+
+        text = '-i https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_9.jpg'
+        MESSAGES.append(MG(text=text, name=name))
+
+        text = ':peka: :gta: :bearbush:'
+        MESSAGES.append(MG(text=text, name=name))
+
+    def add_test_messages_d(self) -> None:
+        text = 'xxx задонатил и не сказал ничего.'
+        MESSAGES.append(MessageMiranda(text=text, is_donate=True))
 
     def add_test_messages_s(self) -> None:
-        message = dict(id='v', name='xxx', text='+t от xxx')
-        MESSAGES.append(message.copy())
-        message['text'] = '-i https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_10.jpg'
-        MESSAGES.append(message.copy())
-        message['text'] = '@chaos обращение'
-        MESSAGES.append(message.copy())
+        name = 'xxx'
+
+        text = '-t от xxx'
+        MESSAGES.append(MV(text=text, name=name))
+
+        text = '-i https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_10.jpg'
+        MESSAGES.append(MV(text=text, name=name))
+
+        text = '@chaos обращение'
+        MESSAGES.append(MV(text=text, name=name))
 
     def add_test_messages_t(self) -> None:
-        if 'twitch' not in CONFIG:
-            return None
-        from . import twitch
-        t = twitch.Twitch('sle')
-        m = dict(id='t', name='chaos_soft', color='#ff69b4', text='+t от root')
-        MESSAGES.append(m.copy())
-        m['text'] = '-i https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_4.jpg'
-        MESSAGES.append(m.copy())
-        m['text'] = '<] >( ;) #/ <3 <3 <3 xxx <3 <3 <3'
-        m['emotes'] = '555555562:3-4/555555589:6-7/555555584:12-13,15-16,18-19,25-26,28-29,31-32'
-        t.parse_emotes(m)
-        MESSAGES.append(m.copy())
-        m['text'] = 'LUL ResidentSleeper SeriousSloth'
-        m['emotes'] = '425618:0-2/245:4-18/81249:20-31'
-        t.parse_emotes(m)
-        MESSAGES.append(m.copy())
+        color = '#ff69b4'
+        name = 'chaos_soft'
+        t = Twitch('sle')
+
+        text = '-t от root'
+        MESSAGES.append(MT(text=text, name=name, color=color))
+
+        text = '-i https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_4.jpg'
+        MESSAGES.append(MT(text=text, name=name, color=color))
+
+        d = {
+            'emotes': '555555562:3-4/555555589:6-7/555555584:12-13,15-16,18-19,25-26,28-29,31-32',
+            'text': '<] >( ;) #/ <3 <3 <3 xxx <3 <3 <3',
+        }
+        t.parse_emotes(d)
+        MESSAGES.append(MT(name=name, color=color, **d))
+
+        d = {
+            'emotes': '425618:0-2/245:4-18/81249:20-31',
+            'text': 'LUL ResidentSleeper SeriousSloth',
+        }
+        t.parse_emotes(d)
+        MESSAGES.append(MT(name=name, color=color, **d))
 
     def add_test_messages_y(self) -> None:
-        message: D = dict(id='y', name='xxx_timestamp')
-        message['text'] = '-и https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_10.jpg'
-        message['timestamp'] = datetime.now().timestamp() - 28 * 24 * 60 * 60
-        MESSAGES.append(message.copy())
+        name = 'xxx_timestamp'
+        text = '-и https://gals.kindgirls.com/d11/ariel_09328/ariel_09328_10.jpg'
+        timestamp = datetime.now().timestamp() - 28 * 24 * 60 * 60
+        MESSAGES.append(MY(text=text, name=name, timestamp=timestamp))
 
-    def add_tts(self, message: D, command_text: str) -> None:
+    def add_tts(self, message: MessageABC, command_text: str) -> None:
         if command_text:
-            MESSAGES.append(dict(id='tts', text=command_text[:300]))
+            text = command_text[:300]
+            MESSAGES.append(MessageMiranda(text=text, is_tts=True))
 
-    def clean_chat(self, **kwargs: D) -> None:
-        MESSAGES.append(dict(id='js', text='clean_chat'))
+    def clean_chat(self, **kwargs: Any) -> None:
+        text = 'clean_chat'
+        MESSAGES.append(MessageMiranda(text=text, is_js=True))
 
-    def clean_messages(self, **kwargs: D) -> None:
+    def clean_messages(self, **kwargs: Any) -> None:
         MESSAGES[:] = []
         self.offset = 0
         self.clean_chat()
 
-    def is_timestamp(self, message: D, params: list[str]) -> bool:
+    def is_friendly(self, message: MessageABC) -> bool:
+        name = message.name.lower()
+        if name in self.friendly:
+            message.name += ' [f]'
+            return True
+        else:
+            return False
+
+    def is_root(self, message: MessageABC) -> bool:
+        name = message.name.lower()
+        name_root = '{}:{}'.format(name, message.id)
+        if name_root in self.root:
+            message.name += ' [r]'
+            return True
+        else:
+            return False
+
+    def is_timestamp(self, message: MessageABC, params: list[str]) -> bool:
         is_timestamp = False
         try:
             timestamp = message.get('timestamp', self.start_timestamp)
@@ -193,21 +216,21 @@ class Commands(Base):
             is_timestamp = True
         return is_timestamp
 
-    def kill(self, **kwargs: D) -> None:
+    def kill(self, **kwargs: Any) -> None:
         raise KillError
 
-    def print_to_console(self, message: D, command_text: str) -> None:
+    def print_to_console(self, message: MessageABC, command_text: str) -> None:
         if command_text:
             print(command_text)
 
-    def shutdown(self, message: D, command_text: str) -> None:
+    def shutdown(self, message: MessageABC, command_text: str) -> None:
         module_name = command_text
         if module_name not in CONFIG or not TG:
             return None
         module = importlib.import_module(f'miranda.{module_name}')
         module.shutdown()
 
-    def start(self, message: D, command_text: str) -> None:
+    def start(self, message: MessageABC, command_text: str) -> None:
         module_name = command_text
         if module_name not in CONFIG or not TG:
             return None

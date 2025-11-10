@@ -4,7 +4,18 @@ import asyncio
 import json
 
 from .chat import Chat, WebSocket
-from .common import make_request, MESSAGES, STATS, D, start_after, dump_credentials, load_credentials, T
+from .common import (
+    D,
+    dump_credentials,
+    load_credentials,
+    make_request,
+    MessageABC,
+    MessageMiranda,
+    MESSAGES,
+    start_after,
+    STATS,
+    T,
+)
 from .config import CONFIG
 
 CLIENT_ID: str = '534nwhjhsn894my7'
@@ -58,6 +69,10 @@ def shutdown() -> None:
     TASKS.clear()
 
 
+class Message(MessageABC):
+    id = 'v'
+
+
 class OAuth():
     authorization: str = standard_b64encode(':'.join([CLIENT_ID, CLIENT_SECRET]).encode('utf-8')).decode('utf-8')
     authorization_url: str = 'https://auth.live.vkvideo.ru/app/oauth2/authorize'
@@ -81,7 +96,8 @@ class OAuth():
             '&redirect_uri=', quote_plus(cls.redirect_uri),
             '&state=', cls.state,
         ])
-        MESSAGES.append(dict(id='m', text=f'<a href="{url}">Авторизация в VK</a>.'))
+        text = f'<a href="{url}">Авторизация в VK</a>.'
+        MESSAGES.append(MessageMiranda(text=text))
 
     @classmethod
     async def get_credentials(cls) -> None:
@@ -160,7 +176,8 @@ class VK(WebSocket):
         await self.w.send(json.dumps(data))
 
     def add_message(self, message: D) -> None:
-        m = dict(id='v', name=message['user']['displayName'], images={})
+        images: D = {}
+        name = message['user']['displayName']
         text = []
         for i, v in enumerate(message['data']):
             if v['type'] in ['text', 'link'] and v['content']:
@@ -168,12 +185,11 @@ class VK(WebSocket):
                 text.append(content[0])
             elif v['type'] == 'smile':
                 k = f':{i}:'
-                m['images'][k] = v['largeUrl']
+                images[k] = v['largeUrl']
                 text.append(k)
             elif v['type'] == 'mention':
                 text.append(v['displayName'])
-        m['text'] = ' '.join(text)
-        MESSAGES.append(m)
+        MESSAGES.append(Message(text=' '.join(text), name=name, images=images))
 
 
 class VKStats(Chat):
@@ -202,11 +218,11 @@ class VKStats(Chat):
             raise
 
     def add_info(self) -> None:
-        MESSAGES.append(dict(id='m', text='Статистика с VK: views, reactions, viewers.'))
+        text = 'Статистика с VK: views, reactions, viewers.'
+        MESSAGES.append(MessageMiranda(text=text))
 
     def alert(self, data: D) -> None:
         views: int = data['counters']['views']
         reactions: int = sum(map(lambda r: r['count'], data['reactions']))
         viewers: int = data['counters']['viewers']
         STATS['v'] = f'{views} {reactions} {viewers}'
-        print('tmp_grep alert', data['reactions'])

@@ -2,7 +2,7 @@ import asyncio
 import json
 
 from .chat import WebSocket
-from .common import D, MESSAGES, STATS, T, loop
+from .common import D, MESSAGES, STATS, T, loop, MessageABC, MessageMiranda
 from .config import CONFIG
 
 TASKS: T = []
@@ -59,28 +59,42 @@ class GoodGame(WebSocket):
 
     def add_follower(self, data: D) -> None:
         text = CONFIG['goodgame']['text_follower'].format(data['userName'])
-        MESSAGES.append(dict(id='e', text=text))
+        MESSAGES.append(MessageMiranda(text=text, is_event=True))
 
     def add_info(self) -> None:
-        MESSAGES.append(dict(id='m', text='Статистика с GoodGame: онлайн, в чате.'))
+        text = 'Статистика с GoodGame: онлайн, в чате.'
+        MESSAGES.append(MessageMiranda(text=text))
 
     def add_message(self, data: D) -> None:
-        MESSAGES.append(dict(id='g', name=data['user_name'], text=data['text'], premiums=data['premiums']))
+        name = data['user_name']
+        premiums = data['premiums']
+        text = data['text']
+        MESSAGES.append(Message(text=text, name=name, premiums=premiums))
 
     def add_payment(self, data: D) -> None:
         if data['message']:
             text = CONFIG['base']['text_donate'].format(data['userName'], data['message'])
         else:
             text = CONFIG['base']['text_donate_empty'].format(data['userName'])
-        MESSAGES.append(dict(id='p', text=text))
+        MESSAGES.append(MessageMiranda(text=text, is_donate=True))
 
     def add_premium(self, data: D) -> None:
         text = CONFIG['goodgame']['text_premium'].format(data['userName'])
-        MESSAGES.append(dict(id='e', text=text))
+        MESSAGES.append(MessageMiranda(text=text, is_event=True))
 
     def add_stats(self, data: D) -> None:
         STATS['g'] = f"{data['clients_in_channel']} {data['users_in_channel']}"
 
     def add_teleport(self, data: D) -> None:
         text = CONFIG['goodgame']['text_teleport'].format(data['streamerUsernameSrc'], data['usersCnt'])
-        MESSAGES.append(dict(id='e', text=text))
+        MESSAGES.append(MessageMiranda(text=text, is_event=True))
+
+
+class Message(MessageABC):
+    id = 'g'
+    premiums: list[int] = []
+
+    def to_dict(self) -> D:
+        d = super().to_dict()
+        d['premiums'] = self.premiums
+        return d

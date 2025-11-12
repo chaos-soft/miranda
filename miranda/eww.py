@@ -109,9 +109,8 @@ class EwwClient(WebSocket):
            (smile_id := text[1:-1]) in SMILES:
             images[text] = SMILES[smile_id]
 
-        for k, v in images.items():
-            if k in text:
-                return await self.get_image(v)
+        if text in images:
+            return await self.get_image(images[text])
         else:
             return self.get_label(text)
 

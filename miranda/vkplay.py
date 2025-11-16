@@ -146,6 +146,8 @@ class VK(WebSocket):
         await super().main()
 
     async def on_message(self, data_str: str) -> None:
+        assert self.w is not None
+
         if data_str == '{}':
             await self.w.send(data_str)
             return None
@@ -166,6 +168,7 @@ class VK(WebSocket):
                 print('tmp_grep else', data)
 
     async def on_open(self) -> None:
+        assert self.w is not None
         data = {
             'connect': {
                 'token': chat_token,

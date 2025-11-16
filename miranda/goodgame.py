@@ -46,6 +46,7 @@ class GoodGame(WebSocket):
             self.add_teleport(data['data'])
 
     async def on_open(self) -> None:
+        assert self.w is not None
         data = {
             'data': {
                 'channel_id': self.channel,

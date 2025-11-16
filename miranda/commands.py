@@ -63,8 +63,8 @@ class Commands(Base):
                     if type(message) is MessageMiranda:
                         continue
                     # Обработка имён.
-                    is_friendly = self.is_friendly(message)
                     is_root = self.is_root(message)
+                    is_friendly = self.is_friendly(message)
                     # Параметры команды.
                     # p = ['имя метода', 'владелец', 'время с подписки']
                     for k, p in commands.items():

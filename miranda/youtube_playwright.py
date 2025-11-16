@@ -47,7 +47,7 @@ class YouTube(Chat):
 
     async def add_message(self, message: Locator) -> None:
         name = message.locator('#author-name').inner_text()
-        text = message.locator('#message').inner_html()
+        text = message.locator('#message').inner_text()
         MESSAGES.append(Message(text=text, name=name))
 
     async def handle_route(self, route: Route) -> None:

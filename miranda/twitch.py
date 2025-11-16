@@ -169,6 +169,7 @@ class Twitch(WebSocket):
             await self.send_pong(data)
 
     async def on_open(self) -> None:
+        assert self.w is not None
         # PASS и NICK именно в таком порядке.
         await self.w.send(f'PASS oauth:{credentials['access_token']}\r\n')
         await self.w.send('NICK chaos-soft\r\n')
@@ -176,6 +177,7 @@ class Twitch(WebSocket):
         await self.w.send(f'JOIN #{self.channel}\r\n')
 
     async def send_pong(self, data: str) -> None:
+        assert self.w is not None
         await self.w.send(f'{data.replace("PING", "PONG")}\r\n')
 
     def add_message(self, message: D) -> None:

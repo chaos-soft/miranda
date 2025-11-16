@@ -82,7 +82,7 @@ class EwwClient(WebSocket):
     async def on_message(self, data_str: str) -> None:
         data = json.loads(data_str)
         for message in data['messages']:
-            if message['id'] == MessageMiranda.id:
+            if message['id'] == MessageMiranda.id and (not message['is_donate'] and not message['is_event']):
                 continue
             elements: list[str] = list(filter(None, message['text'].translate(self.table).split(' ')))
             id = message['id']

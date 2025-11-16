@@ -68,8 +68,8 @@ class WebSocket(Chat):
         pass
 
     async def send_heartbeat(self) -> None:
-        if self.w:
-            try:
-                await self.w.send(self.heartbeat_data)
-            except websockets.ConnectionClosed:
-                pass
+        assert self.w is not None
+        try:
+            await self.w.send(self.heartbeat_data)
+        except websockets.ConnectionClosed:
+            pass

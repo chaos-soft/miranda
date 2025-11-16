@@ -191,7 +191,7 @@ class Commands(Base):
     def is_friendly(self, message: MessageABC) -> bool:
         name = message.name.lower()
         if name in self.friendly:
-            message.name += ' [f]'
+            message.name += ' / f'
             return True
         else:
             return False
@@ -200,7 +200,7 @@ class Commands(Base):
         name = message.name.lower()
         name_root = '{}:{}'.format(name, message.id)
         if name_root in self.root:
-            message.name += ' [r]'
+            message.name += ' / r'
             return True
         else:
             return False

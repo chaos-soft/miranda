@@ -15,6 +15,7 @@ from .config import CONFIG
 from .youtube_rss import YouTubeStats, video_id
 
 C = Union[Credentials | None]
+
 SCOPES: list[str] = ['https://www.googleapis.com/auth/youtube.readonly']
 TASKS: T = []
 TG: asyncio.TaskGroup | None = None
@@ -51,14 +52,14 @@ async def catch(f: Callable) -> None:
 
 async def start() -> None:
     if TASKS:
-        return None
-    if not TG:
-        raise
+        shutdown()
+    assert TG is not None
     channel = CONFIG['youtube'].get('channel')
     o = OAuthYouTube()
     y = YouTube('xxx')
     TASKS.append(TG.create_task(catch(o.get_authorization_url)))
     TASKS.append(TG.create_task(catch(o.get_credentials)))
+    TASKS.append(TG.create_task(catch(o.refresh_credentials)))
     TASKS.append(TG.create_task(catch(y.get_chat_id)))
     TASKS.append(TG.create_task(catch(y.main)))
     TASKS.append(TG.create_task(catch(YouTubeStats(channel).main)))
@@ -118,10 +119,10 @@ class OAuthYouTube(Base):
     async def get_flow(self) -> None:
         self.flow = Flow.from_client_secrets_file(
             get_config_file('client_secret.json'),
+            redirect_uri=self.redirect_uri,
             scopes=SCOPES,
             state=self.state,
         )
-        self.flow.redirect_uri = self.redirect_uri
 
     async def refresh_credentials(self) -> None:
         global credentials
@@ -164,6 +165,7 @@ class YouTube(Chat):
                 await asyncio.sleep(TIMEOUT_10M)
             except errors.HttpError as e:
                 if self.process_exception(e):
+                    await self.on_close()
                     return None
                 await asyncio.sleep(TIMEOUT_30S)
 
@@ -187,6 +189,7 @@ class YouTube(Chat):
                 await asyncio.sleep(timeout)
             except errors.HttpError as e:
                 if self.process_exception(e):
+                    await self.on_close()
                     return None
                 await asyncio.sleep(TIMEOUT_30S)
             except asyncio.CancelledError:

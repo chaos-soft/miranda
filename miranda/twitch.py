@@ -78,7 +78,7 @@ def shutdown() -> None:
 
 
 class Message(MessageABC):
-    color: str
+    color: str = ''
     id = 't'
     timestamp: int = 0
 

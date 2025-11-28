@@ -72,6 +72,9 @@ class EwwClient(WebSocket):
         await proc.wait()
         await asyncio.sleep(0.5)
 
+        proc = await asyncio.create_subprocess_exec('eww', 'update', 'message=')
+        await proc.wait()
+
         proc = await asyncio.create_subprocess_exec('eww', 'close', 'chat')
         await proc.wait()
 

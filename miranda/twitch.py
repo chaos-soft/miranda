@@ -3,7 +3,18 @@ from urllib.parse import quote_plus
 import asyncio
 
 from .chat import Chat, WebSocket
-from .common import make_request, MESSAGES, STATS, D, start_after, dump_credentials, load_credentials, T
+from .common import (
+    D,
+    dump_credentials,
+    load_credentials,
+    make_request,
+    MessageABC,
+    MessageMiranda,
+    MESSAGES,
+    start_after,
+    STATS,
+    T,
+)
 from .config import CONFIG
 
 CLIENT_ID: str = 'g0qvsrztagks1lbg03kwnt67pg9x8a5'
@@ -66,6 +77,17 @@ def shutdown() -> None:
     TASKS.clear()
 
 
+class Message(MessageABC):
+    color: str = ''
+    id = 't'
+    timestamp: int = 0
+
+    def to_dict(self) -> D:
+        d = super().to_dict()
+        d['color'] = self.color
+        return d
+
+
 class OAuth():
     authorization_url: str = 'https://id.twitch.tv/oauth2/authorize'
     redirect_uri: str = 'http://localhost:5173'
@@ -85,7 +107,8 @@ class OAuth():
             '&scope=', quote_plus(' '.join(SCOPES)),
             '&state=', cls.state,
         ])
-        MESSAGES.append(dict(id='m', text=f'<a href="{url}">Авторизация в Twitch</a>.'))
+        text = f'<a href="{url}">Авторизация в Twitch</a>.'
+        MESSAGES.append(MessageMiranda(text=text))
 
     @classmethod
     async def get_credentials(cls) -> None:
@@ -146,6 +169,7 @@ class Twitch(WebSocket):
             await self.send_pong(data)
 
     async def on_open(self) -> None:
+        assert self.w is not None
         # PASS и NICK именно в таком порядке.
         await self.w.send(f'PASS oauth:{credentials['access_token']}\r\n')
         await self.w.send('NICK chaos-soft\r\n')
@@ -153,20 +177,20 @@ class Twitch(WebSocket):
         await self.w.send(f'JOIN #{self.channel}\r\n')
 
     async def send_pong(self, data: str) -> None:
+        assert self.w is not None
         await self.w.send(f'{data.replace("PING", "PONG")}\r\n')
 
     def add_message(self, message: D) -> None:
-        message['id'] = 't'
         if message['user-id'] in FOLLOWS:
             message['timestamp'] = FOLLOWS[message['user-id']]
         message.pop('user-id')
         message['name'] = message.pop('display-name')
         self.parse_emotes(message)
-        MESSAGES.append(message)
+        MESSAGES.append(Message(**message))
 
     def add_notify(self, message: D) -> None:
         text = CONFIG['twitch']['text'].format(message['system-msg'].replace(r'\s', ' '))
-        MESSAGES.append(dict(id='e', text=text))
+        MESSAGES.append(MessageMiranda(text=text, is_event=True))
 
     def clean_text(self, text: str) -> str:
         """Очищает от /me."""
@@ -186,20 +210,14 @@ class Twitch(WebSocket):
     def parse_emotes(self, message: D) -> None:
         if 'emotes' not in message:
             return None
-        message['replacements'] = []
-        for i, emote in enumerate(message['emotes'].split('/')):
+        images = {}
+        for emote in message['emotes'].split('/'):
             id, indexes = emote.split(':')
             indexes = indexes.split(',', 1)[0].split('-')
-            message['replacements'] += [[
-                f'image{i}',
-                id,
-                message['text'][int(indexes[0]):int(indexes[1]) + 1],
-            ]]
+            k = message['text'][int(indexes[0]):int(indexes[1]) + 1]
+            images[k] = f'https://static-cdn.jtvnw.net/emoticons/v2/{id}/static/light/3.0'
         message.pop('emotes')
-        message['replacements'].sort(key=lambda r: r[1], reverse=True)
-        for r in message['replacements']:
-            message['text'] = message['text'].replace(r[2], r[0])
-            del r[2]
+        message['images'] = dict(sorted(images.items(), key=lambda v: len(v[0]), reverse=True))
 
 
 class TwitchFollows(Chat):
@@ -250,7 +268,7 @@ class TwitchFollows(Chat):
 
     def alert(self, follow: dict[str, str]) -> None:
         text = CONFIG['twitch']['text_follower'].format(follow['user_name'] or follow['user_login'])
-        MESSAGES.append(dict(id='e', text=text))
+        MESSAGES.append(MessageMiranda(text=text, is_event=True))
 
 
 class TwitchStats(Chat):

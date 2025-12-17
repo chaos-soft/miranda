@@ -12,6 +12,7 @@ from .config import CONFIG
 
 MODULES: list[str] = [
     'commands',
+    'eww',
     'goodgame',
     'twitch',
     'vkplay',

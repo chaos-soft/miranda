@@ -4,11 +4,11 @@ import asyncio
 import websockets
 
 from .chat import Base
-from .common import MESSAGES, STATS
+from .common import MESSAGES, STATS, messages_to_dict
 from .config import CONFIG
 from .tipizator import Tipizator
 
-tipizator = Tipizator(types_load={'offset': int, 'code': str})
+tipizator = Tipizator(types_load={'offset': int}, types_dump={'messages': messages_to_dict})
 
 
 class Server(Base):
@@ -30,11 +30,11 @@ class Server(Base):
                 if offset > total:
                     offset = 0
                 await websocket.send(tipizator.dumps({
-                    'messages': MESSAGES.data[offset:],
+                    'messages': MESSAGES[offset:],
                     'names': CONFIG['base'].getlist('names'),
                     'stats': STATS,
                     'total': total,
                     'tts_api_key': CONFIG['base'].get('tts_api_key'),
                 }))
-        except (websockets.exceptions.ConnectionClosedError, websockets.exceptions.ConnectionClosedOK) as e:
+        except (websockets.exceptions.ConnectionClosedError, websockets.exceptions.ConnectionClosedOK, TypeError) as e:
             self.print_exception(e)

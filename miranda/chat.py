@@ -1,18 +1,20 @@
-from typing import Any
+from abc import ABCMeta, abstractmethod
 import asyncio
-import re
 
 import websockets
 
 from .common import print_error
 
 
-class Base():
+class Base(metaclass=ABCMeta):
     async def on_close(self) -> None:
         self.print_error('остановлен.')
 
-    async def on_start(self) -> None:
-        self.print_error('запущен.')
+    async def on_start(self, str_: str = '') -> None:
+        if str_:
+            self.print_error(f'{str_} запущен.')
+        else:
+            self.print_error('запущен.')
 
     def print_error(self, str_: str) -> None:
         print_error(f'{type(self).__name__} {str_}')
@@ -32,11 +34,9 @@ class Chat(Base):
 
 
 class WebSocket(Chat):
-    heartbeat: int = 0
-    heartbeat_data: str = ''
-    re_code: Any = re.compile(r'^\d+')
-    url: str = ''
-    w: Any = None
+    heartbeat_data: str
+    url: str
+    w: websockets.ClientConnection | None = None
 
     async def main(self) -> None:
         try:
@@ -60,17 +60,16 @@ class WebSocket(Chat):
         self.w = None
         await super().on_close()
 
+    @abstractmethod
     async def on_message(self, data_str: str) -> None:
-        raise NotImplementedError
+        pass
 
     async def on_open(self) -> None:
         pass
 
     async def send_heartbeat(self) -> None:
-        while True:
-            await asyncio.sleep(self.heartbeat)
-            if self.w:
-                try:
-                    await self.w.send(self.heartbeat_data)
-                except websockets.ConnectionClosed:
-                    pass
+        if self.w:
+            try:
+                await self.w.send(self.heartbeat_data)
+            except websockets.ConnectionClosed:
+                pass

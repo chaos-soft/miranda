@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any
 import json
 
@@ -5,7 +6,7 @@ import json
 class Tipizator:
     dump_kwargs: dict[str, Any] = {'ensure_ascii': False}
 
-    def __init__(self, types_dump: dict[str, Any] = {}, types_load: dict[str, Any] = {}):
+    def __init__(self, types_dump: dict[str, Callable] = {}, types_load: dict[str, Callable] = {}):
         self.types_dump = types_dump
         self.types_load = types_load
 

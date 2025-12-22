@@ -10,7 +10,7 @@ from googleapiclient import discovery, errors
 from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
 
 from .chat import Base, Chat
-from .common import MESSAGES, D, get_config_file, STATS, start_after, T, MessageABC, MessageMiranda
+from .common import MESSAGES, D, get_config_file, STATS, start_after, T, MessageABC, MessageMiranda, logger
 from .config import CONFIG
 from .youtube_rss import YouTubeStats, video_id
 
@@ -44,6 +44,12 @@ async def catch(f: Callable) -> None:
         await f()
     except* RefreshError:
         global credentials
+        msg = 'RefreshError\ncredentials: {}\ncredentials.valid: {}\nf: {}'.format(
+            credentials,
+            credentials.valid if credentials else None,
+            f.__name__,
+        )
+        logger.debug(msg)
         shutdown()
         get_config_file(file_name).unlink()
         credentials = load_credentials(file_name)

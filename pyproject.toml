@@ -21,7 +21,7 @@ maintainers = [
 name = "miranda"
 readme = "README.md"
 requires-python = ">=3.11"
-version = "2025.9"
+version = "2025.12"
 
 [project.scripts]
 miranda = "miranda.__main__:main"

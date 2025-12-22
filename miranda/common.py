@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 import asyncio
 import json
+import logging.config
 
 import httpx
 
@@ -14,6 +15,15 @@ T = list[asyncio.Task]
 
 STATS: dict[str, int | str] = {}
 TIMEOUT_5S: int = 5
+
+
+def get_config_file(name: str) -> Path:
+    return Path.home() / '.config' / 'miranda' / name
+
+
+with open(get_config_file('config_logging.json')) as f:
+    logging.config.dictConfig(json.load(f))
+logger: logging.Logger = logging.getLogger('miranda')
 
 
 class MessageABC(metaclass=ABCMeta):
@@ -87,10 +97,6 @@ def dump_credentials(name: str, credentials: D) -> None:
         json.dump(credentials, f)
 
 
-def get_config_file(name: str) -> Path:
-    return Path.home() / '.config' / 'miranda' / name
-
-
 def load_credentials(name: str) -> D:
     try:
         with open(get_config_file(name)) as f:
@@ -106,8 +112,8 @@ def messages_to_dict(messages: list[MessageABC]) -> list[dict]:
 
 
 def print_error(e: str) -> None:
-    text = f'[{str(datetime.now()).split(".")[0]}] {e}'
-    print(text)
+    text = '[{}] {}'.format(str(datetime.now()).split(".")[0], e)
+    logger.info(e)
     MESSAGES.append(MessageMiranda(text=text))
 
 

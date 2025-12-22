@@ -7,13 +7,14 @@ import sys
 
 from . import commands
 from . import server
-from .common import T
+from .common import T, logger
 from .config import CONFIG
 
 MODULES: list[str] = [
     'commands',
     'eww',
     'goodgame',
+    'notify_send',
     'twitch',
     'vkplay',
     'youtube',
@@ -38,6 +39,8 @@ async def run() -> None:
     except* commands.RestartError:
         shutdown()
         await run()
+    except* Exception as e:
+        logger.exception(e)
 
 
 def main() -> int:

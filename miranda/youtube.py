@@ -42,14 +42,9 @@ credentials: C = load_credentials(file_name)
 async def catch(f: Callable) -> None:
     try:
         await f()
-    except* RefreshError:
+    except* RefreshError as e:
         global credentials
-        msg = 'RefreshError\ncredentials: {}\ncredentials.valid: {}\nf: {}'.format(
-            credentials,
-            credentials.valid if credentials else None,
-            f.__name__,
-        )
-        logger.debug(msg)
+        log_refresh_error(e, f.__name__)
         shutdown()
         get_config_file(file_name).unlink()
         credentials = load_credentials(file_name)
@@ -76,6 +71,16 @@ def dump_credentials() -> None:
         return None
     with get_config_file(file_name).open('w') as f:
         f.write(credentials.to_json())
+
+
+def log_refresh_error(e: Exception, f: str) -> None:
+    msg = 'RefreshError\ncredentials: {}\ncredentials.valid: {}\nf: {}'.format(
+        credentials,
+        credentials.valid if credentials else None,
+        f,
+    )
+    logger.debug(e)
+    logger.debug(msg)
 
 
 def shutdown() -> None:
@@ -174,6 +179,9 @@ class YouTube(Chat):
                     await self.on_close()
                     return None
                 await asyncio.sleep(TIMEOUT_30S)
+            except RefreshError as e:
+                log_refresh_error(e, 'get_chat_id')
+                await asyncio.sleep(TIMEOUT_30S)
 
     @start_after('chat_id', globals())
     async def main(self) -> None:
@@ -197,6 +205,9 @@ class YouTube(Chat):
                 if self.process_exception(e):
                     await self.on_close()
                     return None
+                await asyncio.sleep(TIMEOUT_30S)
+            except RefreshError as e:
+                log_refresh_error(e, 'main')
                 await asyncio.sleep(TIMEOUT_30S)
             except asyncio.CancelledError:
                 await self.on_close()

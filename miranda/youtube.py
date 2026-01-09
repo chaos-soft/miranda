@@ -45,6 +45,7 @@ async def catch(f: Callable) -> None:
     except* RefreshError as e:
         global credentials
         log_refresh_error(e, f.__name__)
+        logger.exception(e)
         shutdown()
         get_config_file(file_name).unlink()
         credentials = load_credentials(file_name)
@@ -79,7 +80,6 @@ def log_refresh_error(e: Exception, f: str) -> None:
         credentials.valid if credentials else None,
         f,
     )
-    logger.debug(e)
     logger.debug(msg)
 
 

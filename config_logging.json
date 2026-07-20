@@ -12,7 +12,7 @@
       "backupCount": 2,
       "class": "logging.handlers.RotatingFileHandler",
       "encoding": "utf-8",
-      "filename": "/tmp/miranda_log",
+      "filename": "/tmp/miranda.log",
       "formatter": "simple",
       "maxBytes": 1000000,
       "mode": "a"

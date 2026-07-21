@@ -22,7 +22,9 @@
 Находиться он должен в ~/.config/miranda.
 Получить версию по умолчанию можно командой:
 
-    mkdir -p ~/.config/miranda && curl -LJ -o ~/.config/miranda/config.ini https://github.com/chaos-soft/miranda/raw/refs/heads/master/config.ini
+    mkdir -p ~/.config/miranda
+    curl -LJ -o ~/.config/miranda/config.ini https://raw.githubusercontent.com/chaos-soft/miranda/refs/heads/master/config.ini
+    curl -LJ -o ~/.config/miranda/config_logging.json https://raw.githubusercontent.com/chaos-soft/miranda/refs/heads/master/config_logging.json
 
 Запуск:
 

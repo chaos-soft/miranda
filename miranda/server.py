@@ -8,14 +8,16 @@ from .common import MESSAGES, STATS, messages_to_dict
 from .config import CONFIG
 from .tipizator import Tipizator
 
-tipizator = Tipizator(types_load={'offset': int}, types_dump={'messages': messages_to_dict})
+tipizator = Tipizator(
+    types_load={"offset": int}, types_dump={"messages": messages_to_dict}
+)
 
 
 class Server(Base):
     async def main(self) -> None:
         try:
             await self.on_start()
-            async with websockets.serve(self.messages, '0.0.0.0', 55555):
+            async with websockets.serve(self.messages, "0.0.0.0", 55555):
                 await asyncio.Future()
         except asyncio.CancelledError:
             await self.on_close()
@@ -25,16 +27,24 @@ class Server(Base):
         try:
             async for message in websocket:
                 data = tipizator.loads(message)
-                offset = data.get('offset', 0)
+                offset = data.get("offset", 0)
                 total = len(MESSAGES)
                 if offset > total:
                     offset = 0
-                await websocket.send(tipizator.dumps({
-                    'messages': MESSAGES[offset:],
-                    'names': CONFIG['base'].getlist('names'),
-                    'stats': STATS,
-                    'total': total,
-                    'tts_api_key': CONFIG['base'].get('tts_api_key'),
-                }))
-        except (websockets.exceptions.ConnectionClosedError, websockets.exceptions.ConnectionClosedOK, TypeError) as e:
+                await websocket.send(
+                    tipizator.dumps(
+                        {
+                            "messages": MESSAGES[offset:],
+                            "names": CONFIG["base"].getlist("names"),
+                            "stats": STATS,
+                            "total": total,
+                            "tts_api_key": CONFIG["base"].get("tts_api_key"),
+                        }
+                    )
+                )
+        except (
+            websockets.exceptions.ConnectionClosedError,
+            websockets.exceptions.ConnectionClosedOK,
+            TypeError,
+        ) as e:
             self.print_exception(e)

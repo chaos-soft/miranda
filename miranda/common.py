@@ -18,12 +18,12 @@ TIMEOUT_5S: int = 5
 
 
 def get_config_file(name: str) -> Path:
-    return Path.home() / '.config' / 'miranda' / name
+    return Path.home() / ".config" / "miranda" / name
 
 
-with open(get_config_file('config_logging.json')) as f:
+with open(get_config_file("config_logging.json")) as f:
     logging.config.dictConfig(json.load(f))
-logger: logging.Logger = logging.getLogger('miranda')
+logger: logging.Logger = logging.getLogger("miranda")
 
 
 class MessageABC(metaclass=ABCMeta):
@@ -41,23 +41,28 @@ class MessageABC(metaclass=ABCMeta):
         return getattr(self, k, default)
 
     def to_dict(self) -> D:
-        return {'id': self.id, 'images': self.images, 'name': self.name, 'text': self.text}
+        return {
+            "id": self.id,
+            "images": self.images,
+            "name": self.name,
+            "text": self.text,
+        }
 
 
 class MessageMiranda(MessageABC):
-    id = 'm'
+    id = "m"
     is_donate: bool = False
     is_event: bool = False
     is_js: bool = False
     is_tts: bool = False
-    name = 'Miranda'
+    name = "Miranda"
 
     def to_dict(self) -> D:
         d = super().to_dict()
-        d['is_donate'] = self.is_donate
-        d['is_event'] = self.is_event
-        d['is_js'] = self.is_js
-        d['is_tts'] = self.is_tts
+        d["is_donate"] = self.is_donate
+        d["is_event"] = self.is_event
+        d["is_js"] = self.is_js
+        d["is_tts"] = self.is_tts
         return d
 
 
@@ -70,7 +75,7 @@ async def loop(f: Callable, timeout: int = TIMEOUT_5S) -> None:
 async def make_request(
     url: str,
     retries: int = 1,
-    method: str = 'GET',
+    method: str = "GET",
     sleep: float = 30.0,
     is_json: bool = True,
     **kwargs: Any,
@@ -85,7 +90,7 @@ async def make_request(
                 else:
                     return r.text
         except Exception as e:
-            print_error(f'{type(e).__name__}: {url}')
+            print_error(f"{type(e).__name__}: {url}")
             retries -= 1
             if retries:
                 await asyncio.sleep(sleep)
@@ -93,7 +98,7 @@ async def make_request(
 
 
 def dump_credentials(name: str, credentials: D) -> None:
-    with get_config_file(name).open('w') as f:
+    with get_config_file(name).open("w") as f:
         json.dump(credentials, f)
 
 
@@ -112,7 +117,7 @@ def messages_to_dict(messages: list[MessageABC]) -> list[dict]:
 
 
 def print_error(e: str) -> None:
-    text = '[{}] {}'.format(str(datetime.now()).split(".")[0], e)
+    text = "[{}] {}".format(str(datetime.now()).split(".")[0], e)
     logger.info(e)
     MESSAGES.append(MessageMiranda(text=text))
 
@@ -132,13 +137,15 @@ def start_after(variables: str | list[str], globals_: D) -> Callable:
                     else:
                         break
             return await f(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
 def str_to_list(str_: str) -> list[str]:
     """Парсит строку с запятыми в массив."""
-    return list(map(str.strip, str_.split(',')))
+    return list(map(str.strip, str_.split(",")))
 
 
 MESSAGES: list[MessageABC] = []

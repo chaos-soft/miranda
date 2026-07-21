@@ -1,26 +1,26 @@
 from abc import ABCMeta, abstractmethod
 import asyncio
 
-import websockets
+import websockets  # type: ignore
 
 from .common import print_error
 
 
 class Base(metaclass=ABCMeta):
     async def on_close(self) -> None:
-        self.print_error('остановлен.')
+        self.print_error("остановлен.")
 
-    async def on_start(self, str_: str = '') -> None:
+    async def on_start(self, str_: str = "") -> None:
         if str_:
-            self.print_error(f'{str_} запущен.')
+            self.print_error(f"{str_} запущен.")
         else:
-            self.print_error('запущен.')
+            self.print_error("запущен.")
 
     def print_error(self, str_: str) -> None:
-        print_error(f'{type(self).__name__} {str_}')
+        print_error(f"{type(self).__name__} {str_}")
 
     def print_exception(self, e: Exception) -> None:
-        self.print_error(f'{type(e).__name__}: {e}')
+        self.print_error(f"{type(e).__name__}: {e}")
 
 
 class Chat(Base):
@@ -30,7 +30,7 @@ class Chat(Base):
         self.channel = channel
 
     def print_error(self, str_: str) -> None:
-        print_error(f'{type(self).__name__} ({self.channel}) {str_}')
+        print_error(f"{type(self).__name__} ({self.channel}) {str_}")
 
 
 class WebSocket(Chat):

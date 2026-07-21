@@ -11,14 +11,14 @@ from .common import T, logger
 from .config import CONFIG
 
 MODULES: list[str] = [
-    'commands',
-    'eww',
-    'goodgame',
-    'notify_send',
-    'twitch',
-    'vkplay',
-    'youtube',
-    'youtube_playwright',
+    "commands",
+    "eww",
+    "goodgame",
+    "notify_send",
+    "twitch",
+    "vkplay",
+    "youtube",
+    "youtube_playwright",
 ]
 SHUTDOWN: list[Callable] = []
 TASKS: T = []
@@ -30,7 +30,7 @@ async def run() -> None:
             TASKS.append(tg.create_task(server.Server().main()))
             for module_name in MODULES:
                 if module_name in CONFIG:
-                    module = importlib.import_module(f'miranda.{module_name}')
+                    module = importlib.import_module(f"miranda.{module_name}")
                     module.TG = tg  # type: ignore
                     SHUTDOWN.append(module.shutdown)
                     tg.create_task(module.start())

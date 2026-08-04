@@ -133,6 +133,9 @@ class Commands(Base):
         text = "xxx задонатил и не сказал ничего."
         MESSAGES.append(MessageMiranda(text=text, is_donate=True))
 
+        text = 'Lorem <a href="xxx">ipsum dolor sit amet</a> consectetur adipisicing.'
+        MESSAGES.append(MessageMiranda(text=text))
+
     def add_test_messages_s(self) -> None:
         name = "xxx"
 
@@ -183,7 +186,7 @@ class Commands(Base):
 
     def add_tts(self, message: MessageABC, command_text: str) -> None:
         if command_text:
-            text = command_text[:300]
+            text = "TTS: {}".format(command_text[:300])
             MESSAGES.append(MessageMiranda(text=text, is_tts=True))
 
     def clean_chat(self, **kwargs: Any) -> None:

@@ -95,11 +95,11 @@ http://localhost:5173.
 
 ## Руководство по стилю
 
-В проекте используются mypy и Flake8.
+В проекте используются: Black, Flake8 и mypy.
 Настройки для Flake8:
 
-    "--ignore=D100,D101,D102,D103,D104,D105,D106,D107",
-    "--max-line-length=119"
+    --ignore D100,D101,D102,D103,D104,D105,D106,D107,E203,W503
+    --max-line-length 88
 
 ## GoodGame
 ## Twitch

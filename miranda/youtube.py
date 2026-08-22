@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Union
+from typing import Any, Union
 import asyncio
 
 from google.auth.exceptions import RefreshError  # type: ignore
@@ -108,6 +108,11 @@ def shutdown() -> None:
     video_id["video_id"] = ""
 
 
+class Commands:
+    def set_youtube_video_id(self, command_text: str, **kwargs: Any) -> None:
+        video_id["video_id"] = command_text
+
+
 class Message(MessageABC):
     id = "y"
 
@@ -207,6 +212,9 @@ class YouTube(Base):
             except RefreshError as e:
                 log_refresh_error(e, "get_chat_id")
                 await asyncio.sleep(TIMEOUT_30S)
+            except TimeoutError as e:
+                self.process_exception(e)
+                return None
 
     @start_after("chat_id", globals())
     async def main(self) -> None:

@@ -5,14 +5,16 @@ from functools import wraps
 from pathlib import Path
 from typing import Any
 import asyncio
+import collections
 import json
 import logging.config
 
-import httpx
+import httpx  # type: ignore
 
 D = dict[str, Any]
 T = list[asyncio.Task]
 
+MESSAGES_EVENT: asyncio.Event = asyncio.Event()
 STATS: dict[str, int | str] = {}
 TIMEOUT_5S: int = 5
 
@@ -64,6 +66,12 @@ class MessageMiranda(MessageABC):
         d["is_js"] = self.is_js
         d["is_tts"] = self.is_tts
         return d
+
+
+class UserList(collections.UserList[MessageABC]):
+    def append(self, message: MessageABC) -> None:
+        MESSAGES_EVENT.set()
+        super().append(message)
 
 
 async def loop(f: Callable, timeout: int = TIMEOUT_5S) -> None:
@@ -148,4 +156,4 @@ def str_to_list(str_: str) -> list[str]:
     return list(map(str.strip, str_.split(",")))
 
 
-MESSAGES: list[MessageABC] = []
+MESSAGES: UserList = UserList()

@@ -9,7 +9,7 @@ from .config import CONFIG, load
 from .goodgame import Message as MG
 from .twitch import Message as MT, Twitch
 from .vkplay import Message as MV
-from .youtube import Message as MY
+from .youtube import Commands as YC, Message as MY
 
 TASKS: T = []
 TG: asyncio.TaskGroup | None = None
@@ -41,7 +41,7 @@ class RestartError(Exception):
     pass
 
 
-class Commands(Base):
+class Commands(YC, Base):
     friendly: list[str]
     offset: int = 0
     root: list[str]
@@ -123,7 +123,7 @@ class Commands(Base):
         text = "-t от friendly"
         MESSAGES.append(MG(text=text, name=name))
 
-        text = "-i https://57st.su/store/images/blog/2026/07/08/188472758-5.webp"
+        text = "-i https://57st.su/store/images/articles/2026/04/188472758-5.webp"
         MESSAGES.append(MG(text=text, name=name))
 
         text = ":peka: :gta: :bearbush:"
@@ -142,7 +142,7 @@ class Commands(Base):
         text = "-t от xxx"
         MESSAGES.append(MV(text=text, name=name))
 
-        text = "-i https://57st.su/store/images/blog/2026/07/08/29742448-6.webp"
+        text = "-i https://57st.su/store/images/articles/2026/04/29742448-6.webp"
         MESSAGES.append(MV(text=text, name=name))
 
         text = "@chaos обращение"
@@ -156,7 +156,7 @@ class Commands(Base):
         text = "-t от root"
         MESSAGES.append(MT(text=text, name=name, color=color))
 
-        text = "-i https://57st.su/store/images/blog/2026/07/08/163272453-2.jpg"
+        text = "-i https://57st.su/store/images/articles/2026/04/163272453-2.jpg"
         MESSAGES.append(MT(text=text, name=name, color=color))
 
         emotes = [
@@ -180,7 +180,7 @@ class Commands(Base):
 
     def add_test_messages_y(self) -> None:
         name = "xxx_timestamp"
-        text = "-и https://57st.su/store/images/blog/2026/07/08/29742448-6.webp"
+        text = "-и https://57st.su/store/images/articles/2026/04/29742448-6.webp"
         timestamp = datetime.now().timestamp() - 28 * 24 * 60 * 60
         MESSAGES.append(MY(text=text, name=name, timestamp=timestamp))
 

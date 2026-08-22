@@ -2,7 +2,7 @@ import asyncio
 import json
 
 from .chat import WebSocket
-from .common import D, MESSAGES, STATS, T, loop, MessageABC, MessageMiranda
+from .common import D, MESSAGES, MessageABC, MessageMiranda, STATS, T, loop
 from .config import CONFIG
 
 TASKS: T = []

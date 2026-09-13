@@ -23,14 +23,14 @@ if __name__ == "__main__":
         "f": "2023-03-21 00:00:00",
     }
     types_dump = {
-        "d": str,
-        "e": str,
-        "f": str,
+        "d": lambda v: str(v),
+        "e": lambda v: str(v),
+        "f": lambda v: str(v),
     }
     types_load = {
-        "d": date.fromisoformat,
-        "e": Decimal,
-        "f": datetime.fromisoformat,
+        "d": lambda v: date.fromisoformat(v),
+        "e": lambda v: Decimal(v),
+        "f": lambda v: datetime.fromisoformat(v),
     }
     tipizator = Tipizator(types_dump, types_load)
 

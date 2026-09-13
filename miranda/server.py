@@ -18,19 +18,19 @@ class Server(Base):
         self.lock = asyncio.Lock()
 
     async def handler(self, websocket: Any) -> None:
-        offset = await self.send_messages(websocket, -20)
+        offset = await self.send_messages(websocket, offset=-10)
         try:
             while True:
-                try:
-                    await asyncio.wait_for(MESSAGES_EVENT.wait(), timeout=30)
-                    MESSAGES_EVENT.clear()
-                    offset = await self.send_messages(websocket, offset)
-                except asyncio.TimeoutError:
-                    pass
+                await MESSAGES_EVENT.wait()
+                MESSAGES_EVENT.clear()
+                offset = await self.send_messages(websocket, offset)
         except websockets.exceptions.ConnectionClosedError as e:
             self.print_exception(e)
         except websockets.exceptions.ConnectionClosedOK:
             pass
+        except asyncio.CancelledError:
+            await websocket.close()
+            raise
 
     async def main(self) -> None:
         host = CONFIG["base"].get("host", "0.0.0.0")
@@ -43,9 +43,8 @@ class Server(Base):
         except asyncio.CancelledError:
             if server:
                 server.close()
-            raise
-        finally:
             await self.on_close()
+            raise
 
     async def send_messages(self, websocket: Any, offset: int) -> int:
         async with self.lock:

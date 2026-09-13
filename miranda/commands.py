@@ -1,104 +1,34 @@
 from datetime import datetime
 from typing import Any
-import asyncio
-import importlib
 
 from .chat import Base
-from .common import MESSAGES, get_config_file, T, MessageABC, MessageMiranda
-from .config import CONFIG, load
+from .common import (
+    D,
+    MESSAGES,
+    MessageABC,
+    MessageMiranda,
+    ModuleManager,
+    SHUTDOWN_EVENT,
+)
+from .config import CONFIG
 from .goodgame import Message as MG
-from .twitch import Message as MT, Twitch
+from .twitch import Message as MT, OAuthTwitch, Twitch
 from .vkplay import Message as MV
-from .youtube import Commands as YC, Message as MY
-
-TASKS: T = []
-TG: asyncio.TaskGroup | None = None
-
-config_mtime: float = get_config_file("config.ini").stat().st_mtime
+from .youtube import Message as MY
 
 
-async def start() -> None:
-    if TASKS:
-        return None
-    if not TG:
-        raise
-    c = Commands()
-    TASKS.append(TG.create_task(c.main()))
-    TASKS.append(TG.create_task(c.reload_config()))
-
-
-def shutdown() -> None:
-    for task in TASKS:
-        task.cancel()
-    TASKS.clear()
-
-
-class KillError(Exception):
-    pass
-
-
-class RestartError(Exception):
-    pass
-
-
-class Commands(YC, Base):
+class Commands(Base):
+    commands: D
     friendly: list[str]
-    offset: int = 0
     root: list[str]
     start_timestamp: float = datetime.now().timestamp()
 
     def __init__(self) -> None:
+        self.commands = {}
         self.friendly = CONFIG["base"].getlist("friendly")
         self.root = CONFIG["base"].getlist("root")
-
-    async def main(self) -> None:
-        try:
-            await self.on_start()
-            commands = {}
-            for k in CONFIG["commands"]:
-                commands[k] = CONFIG["commands"].getlist(k)
-            while True:
-                for message in MESSAGES[self.offset :]:
-                    self.offset += 1
-                    if type(message) is MessageMiranda:
-                        continue
-                    # Обработка имён.
-                    is_root = self.is_root(message)
-                    is_friendly = self.is_friendly(message)
-                    # Параметры команды.
-                    # p = ['имя метода', 'владелец', 'время с подписки']
-                    for k, p in commands.items():
-                        if message.text.startswith(k):
-                            break
-                    else:
-                        continue
-                    # Может ли пользователь использовать команду.
-                    if (
-                        is_root
-                        or (p[1] == "follows" and is_friendly)
-                        or p[1] == "*"
-                        or (p[1] == "follows" and self.is_timestamp(message, p))
-                    ):
-                        getattr(self, p[0])(
-                            message=message,
-                            command_text=message.text[len(k) :].strip(),
-                        )
-                await asyncio.sleep(0.5)
-        except asyncio.CancelledError:
-            await self.on_close()
-            raise
-
-    async def reload_config(self) -> None:
-        global config_mtime
-        while True:
-            await asyncio.sleep(5)
-            mtime = get_config_file("config.ini").stat().st_mtime
-            if mtime > config_mtime:
-                config_mtime = mtime
-                load()
-                self.clean_messages()
-                self.print_error("обновился config.ini.")
-                raise RestartError
+        for k in CONFIG["commands"]:
+            self.commands[k] = CONFIG["commands"].getlist(k)
 
     def add_image(self, message: MessageABC, command_text: str) -> None:
         if command_text:
@@ -151,7 +81,7 @@ class Commands(YC, Base):
     def add_test_messages_t(self) -> None:
         color = "#ff69b4"
         name = "chaos_soft"
-        t = Twitch("sle")
+        t = Twitch(channel="sle", oauth=OAuthTwitch(channel="sle"))
 
         text = "-t от root"
         MESSAGES.append(MT(text=text, name=name, color=color))
@@ -195,7 +125,6 @@ class Commands(YC, Base):
 
     def clean_messages(self, **kwargs: Any) -> None:
         MESSAGES[:] = []
-        self.offset = 0
         self.clean_chat()
 
     def is_friendly(self, message: MessageABC) -> bool:
@@ -227,7 +156,32 @@ class Commands(YC, Base):
         return is_timestamp
 
     def kill(self, **kwargs: Any) -> None:
-        raise KillError
+        SHUTDOWN_EVENT.set()
+
+    def main(self, message: MessageABC) -> None:
+        if type(message) is MessageMiranda:
+            return None
+        # Обработка имён.
+        is_root = self.is_root(message)
+        is_friendly = self.is_friendly(message)
+        # Параметры команды.
+        # p = ['имя метода', 'владелец', 'время с подписки']
+        for k, p in self.commands.items():
+            if message.text.startswith(k):
+                break
+        else:
+            return None
+        # Может ли пользователь использовать команду.
+        if (
+            is_root
+            or (p[1] == "follows" and is_friendly)
+            or p[1] == "*"
+            or (p[1] == "follows" and self.is_timestamp(message, p))
+        ):
+            getattr(self, p[0])(
+                message=message,
+                command_text=message.text[len(k) :].strip(),
+            )
 
     def print_to_console(self, message: MessageABC, command_text: str) -> None:
         if command_text:
@@ -235,14 +189,10 @@ class Commands(YC, Base):
 
     def shutdown(self, message: MessageABC, command_text: str) -> None:
         module_name = command_text
-        if module_name not in CONFIG or not TG:
-            return None
-        module = importlib.import_module(f"miranda.{module_name}")
-        module.shutdown()
+        module_manager = ModuleManager()
+        module_manager.deactivate_module(module_name)
 
     def start(self, message: MessageABC, command_text: str) -> None:
         module_name = command_text
-        if module_name not in CONFIG or not TG:
-            return None
-        module = importlib.import_module(f"miranda.{module_name}")
-        TG.create_task(module.start())
+        module_manager = ModuleManager()
+        module_manager.activate_module(module_name)

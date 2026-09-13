@@ -5,6 +5,8 @@ import json
 
 class Tipizator:
     dump_kwargs: dict[str, Any] = {"ensure_ascii": False}
+    types_dump: dict[str, Callable]
+    types_load: dict[str, Callable]
 
     def __init__(
         self, types_dump: dict[str, Callable] = {}, types_load: dict[str, Callable] = {}

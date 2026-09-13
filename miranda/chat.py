@@ -1,9 +1,10 @@
 from abc import ABCMeta, abstractmethod
 import asyncio
+import json
 
 import websockets  # type: ignore
 
-from .common import print_error
+from .common import D, get_config_file, print_error
 
 
 class Base(metaclass=ABCMeta):
@@ -31,6 +32,33 @@ class Chat(Base):
 
     def print_error(self, str_: str) -> None:
         print_error(f"{type(self).__name__} ({self.channel}) {str_}")
+
+
+class OAuth(Chat):
+    credentials: D
+    credentials_event: asyncio.Event
+    file_name: str
+    redirect_uri: str = "http://localhost:5173"
+    state: str
+
+    def __init__(self, channel: str) -> None:
+        super().__init__(channel)
+        self.credentials_event = asyncio.Event()
+        self.load_credentials()
+
+    def dump_credentials(self) -> None:
+        with get_config_file(self.file_name).open("w") as f:
+            json.dump(self.credentials, f)
+
+    def load_credentials(self) -> None:
+        try:
+            with open(get_config_file(self.file_name)) as f:
+                self.credentials = json.load(f)
+            if self.credentials:
+                self.credentials_event.set()
+        except FileNotFoundError:
+            self.credentials = {}
+            self.dump_credentials()
 
 
 class WebSocket(Chat):

@@ -1,11 +1,12 @@
 from abc import ABCMeta
 from collections.abc import Callable
+from configparser import ConfigParser
 from datetime import datetime
-from functools import wraps
 from pathlib import Path
 from typing import Any
 import asyncio
 import collections
+import importlib
 import json
 import logging.config
 
@@ -15,6 +16,8 @@ D = dict[str, Any]
 T = list[asyncio.Task]
 
 MESSAGES_EVENT: asyncio.Event = asyncio.Event()
+RESTART_EVENT: asyncio.Event = asyncio.Event()
+SHUTDOWN_EVENT: asyncio.Event = asyncio.Event()
 STATS: dict[str, int | str] = {}
 TIMEOUT_5S: int = 5
 
@@ -68,10 +71,78 @@ class MessageMiranda(MessageABC):
         return d
 
 
+class Module:
+    is_active: bool
+    module: Any
+    name: str
+
+    def __init__(self, name: str):
+        self.is_active = True
+        self.module = importlib.import_module(f"miranda.{name}")
+        self.name = name
+
+    def activate(self):
+        self.is_active = True
+        RESTART_EVENT.set()
+
+    def deactivate(self):
+        self.is_active = False
+        RESTART_EVENT.set()
+
+    def start(self):
+        if self.is_active:
+            asyncio.create_task(self.module.start())
+
+
+class Singleton(type):
+    instances: dict[type, Any] = {}
+
+    def __call__(cls) -> Any:
+        if cls not in cls.instances:
+            cls.instances[cls] = super().__call__()
+        return cls.instances[cls]
+
+
 class UserList(collections.UserList[MessageABC]):
+    commands: Any = None
+
     def append(self, message: MessageABC) -> None:
         MESSAGES_EVENT.set()
         super().append(message)
+        if not self.commands:
+            self.init_commands()
+        self.commands.main(message)
+
+    def init_commands(self):
+        module = importlib.import_module("miranda.commands")
+        self.commands = module.Commands()
+
+
+class ModuleManager(metaclass=Singleton):
+    modules: dict[str, Module]
+
+    def __init__(self):
+        self.modules = {}
+
+    def activate_module(self, name: str):
+        if name in self.modules:
+            self.modules[name].activate()
+
+    def deactivate_module(self, name: str):
+        if name in self.modules:
+            self.modules[name].deactivate()
+
+    def init_modules(self, config: ConfigParser, modules: list[str]):
+        for name in modules:
+            if name in config:
+                if name not in self.modules:
+                    self.modules[name] = Module(name)
+            else:
+                self.modules.pop(name, None)
+
+    def start(self):
+        for name, module in self.modules.items():
+            module.start()
 
 
 async def loop(f: Callable, timeout: int = TIMEOUT_5S) -> None:
@@ -82,42 +153,22 @@ async def loop(f: Callable, timeout: int = TIMEOUT_5S) -> None:
 
 async def make_request(
     url: str,
-    retries: int = 1,
     method: str = "GET",
-    sleep: float = 30.0,
+    timeout: int = 60,
     is_json: bool = True,
     **kwargs: Any,
 ) -> Any:
-    while retries:
-        try:
-            async with httpx.AsyncClient() as client:
-                r = await client.request(method, url, **kwargs)
-                assert r.status_code == 200
-                if is_json:
-                    return r.json()
-                else:
-                    return r.text
-        except Exception as e:
-            print_error(f"{type(e).__name__}: {url}")
-            retries -= 1
-            if retries:
-                await asyncio.sleep(sleep)
-    return None
-
-
-def dump_credentials(name: str, credentials: D) -> None:
-    with get_config_file(name).open("w") as f:
-        json.dump(credentials, f)
-
-
-def load_credentials(name: str) -> D:
     try:
-        with open(get_config_file(name)) as f:
-            return json.load(f)
-    except FileNotFoundError:
-        credentials: D = {}
-        dump_credentials(name, credentials)
-        return credentials
+        async with httpx.AsyncClient() as client:
+            r = await client.request(method, url, timeout=timeout, **kwargs)
+            assert r.status_code == 200
+            if is_json:
+                return r.json()
+            else:
+                return r.text
+    except Exception as e:
+        print_error(f"{type(e).__name__}: {url}")
+        return None
 
 
 def messages_to_dict(messages: list[MessageABC]) -> list[dict]:
@@ -128,27 +179,6 @@ def print_error(e: str) -> None:
     text = "[{}] {}".format(str(datetime.now()).split(".")[0], e)
     logger.info(e)
     MESSAGES.append(MessageMiranda(text=text))
-
-
-def start_after(variables: str | list[str], globals_: D) -> Callable:
-    if type(variables) is str:
-        variables = [variables]
-
-    def decorator(f: Callable) -> Callable:
-        @wraps(f)
-        async def wrapper(*args: Any, **kwargs: Any) -> Callable:
-            for variable in variables:
-                while True:
-                    v = globals_[variable]
-                    if not v:
-                        await asyncio.sleep(TIMEOUT_5S)
-                    else:
-                        break
-            return await f(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 def str_to_list(str_: str) -> list[str]:

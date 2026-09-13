@@ -101,11 +101,15 @@ http://localhost:5173.
     --ignore D100,D101,D102,D103,D104,D105,D106,D107,E203,W503
     --max-line-length 88
 
+## TODO
+
+Текущая реализация YouTube не протестирована полностью.
+Донатные смайлы GoodGame не показываются в данный момент.
+
 ## GoodGame
 ## Twitch
 ## VK
 ## YouTube
-## YouTube Playwright
 ## Команды
 ## Описание остальных параметров config.ini
 

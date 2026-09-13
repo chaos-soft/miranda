@@ -2,28 +2,15 @@ import asyncio
 import json
 
 from .chat import WebSocket
-from .common import D, MESSAGES, MessageABC, MessageMiranda, STATS, T, loop
+from .common import D, MESSAGES, MessageABC, MessageMiranda, STATS, loop
 from .config import CONFIG
-
-TASKS: T = []
-TG: asyncio.TaskGroup | None = None
 
 
 async def start() -> None:
-    if "goodgame" not in CONFIG or TASKS:
-        return None
-    if not TG:
-        raise
-    for channel in CONFIG["goodgame"].getlist("channels"):
-        g = GoodGame(channel)
-        TASKS.append(TG.create_task(g.main()))
-        TASKS.append(TG.create_task(loop(g.send_heartbeat, timeout=20)))
-
-
-def shutdown() -> None:
-    for task in TASKS:
-        task.cancel()
-    TASKS.clear()
+    channel = CONFIG["goodgame"].get("channel", "")
+    g = GoodGame(channel)
+    asyncio.create_task(g.main())
+    asyncio.create_task(loop(g.send_heartbeat, timeout=20))
 
 
 class GoodGame(WebSocket):

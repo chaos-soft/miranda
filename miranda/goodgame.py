@@ -1,16 +1,15 @@
-import asyncio
 import json
 
 from .chat import WebSocket
-from .common import D, MESSAGES, MessageABC, MessageMiranda, STATS, loop
+from .common import D, MESSAGES, MessageABC, MessageMiranda, STATS, create_task, loop
 from .config import CONFIG
 
 
 async def start() -> None:
     channel = CONFIG["goodgame"].get("channel", "")
     g = GoodGame(channel)
-    asyncio.create_task(g.main())
-    asyncio.create_task(loop(g.send_heartbeat, timeout=20))
+    create_task(g.main())
+    create_task(loop(g.send_heartbeat, timeout=20))
 
 
 class GoodGame(WebSocket):

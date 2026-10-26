@@ -16,6 +16,7 @@ from .common import (
     MessageMiranda,
     RESTART_EVENT,
     STATS,
+    create_task,
     get_config_file,
     logger,
 )
@@ -101,7 +102,7 @@ class OAuthYouTube(Chat):
         await self.catch(self.get_authorization_url)
         await self.catch(self.get_credentials)
         await self.credentials_event.wait()
-        asyncio.create_task(self.catch(self.refresh_credentials))
+        create_task(self.catch(self.refresh_credentials))
 
     async def refresh_credentials(self) -> None:
         assert self.credentials is not None
@@ -136,7 +137,7 @@ class OAuthYouTube(Chat):
             )
             if self.credentials.valid:
                 self.credentials_event.set()
-        except (ValueError, FileNotFoundError):
+        except ValueError, FileNotFoundError:
             self.credentials = None
 
     def log_refresh_error(self, e: Exception) -> None:
@@ -237,9 +238,9 @@ class YouTube(Chat):
         self.youtube = discovery.build(
             "youtube", "v3", credentials=self.oauth.credentials
         )
-        asyncio.create_task(self.get_chat_id())
+        create_task(self.get_chat_id())
         await self.chat_id_event.wait()
-        asyncio.create_task(self.get_messages())
+        create_task(self.get_messages())
         await self.on_start()
         self.add_info()
 

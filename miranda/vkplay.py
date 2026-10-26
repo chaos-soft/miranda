@@ -10,6 +10,7 @@ from .common import (
     MessageABC,
     MessageMiranda,
     STATS,
+    create_task,
     logger,
     make_request,
 )
@@ -24,12 +25,12 @@ TIMEOUT_30S: int = 30
 async def start() -> None:
     channel = CONFIG["vkplay"].get("channel", "")
     oauth = OAuthVK(channel)
-    asyncio.create_task(oauth.main())
+    create_task(oauth.main())
     await oauth.credentials_event.wait()
     stats = VKStats(channel, oauth)
-    asyncio.create_task(stats.main())
+    create_task(stats.main())
     await stats.channel_id_event.wait()
-    asyncio.create_task(VK(channel, oauth, stats).main())
+    create_task(VK(channel, oauth, stats).main())
 
 
 class Message(MessageABC):
@@ -139,13 +140,20 @@ class VKStats(Chat):
         self.url = self.url.format(channel)
 
     async def load(self) -> None:
-        data = await make_request(self.url, headers=self.oauth.get_headers())
-        if data:
+        data = await make_request(
+            self.url, headers=self.oauth.get_headers(), is_status_code=True
+        )
+        if isinstance(data, dict):
             self.channel_id = data["data"]["channel"]["id"]
             self.channel_id_event.set()
             self.alert(data["data"]["stream"]) if data["data"]["stream"] else None
-        else:
-            await self.oauth.refresh_credentials()
+        elif isinstance(data, int):
+            if data == 401:
+                self.add_error()
+                self.oauth.delete_credentials_file()
+                raise asyncio.CancelledError()
+            else:
+                await self.oauth.refresh_credentials()
 
     async def main(self) -> None:
         await self.on_start()
@@ -157,6 +165,10 @@ class VKStats(Chat):
         except asyncio.CancelledError:
             await self.on_close()
             raise
+
+    def add_error(self) -> None:
+        text = "Необходимо авторизоваться заново в VK."
+        MESSAGES.append(MessageMiranda(text=text))
 
     def add_info(self) -> None:
         text = "Статистика с VK: views, reactions, viewers."

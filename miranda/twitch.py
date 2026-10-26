@@ -9,6 +9,7 @@ from .common import (
     MessageABC,
     MessageMiranda,
     STATS,
+    create_task,
     make_request,
 )
 from .config import CONFIG
@@ -25,13 +26,13 @@ TIMEOUT_5M: int = 5 * 60
 async def start() -> None:
     channel = CONFIG["twitch"].get("channel", "")
     oauth = OAuthTwitch(channel)
-    asyncio.create_task(oauth.main())
+    create_task(oauth.main())
     await oauth.credentials_event.wait()
-    asyncio.create_task(Twitch(channel, oauth).main())
+    create_task(Twitch(channel, oauth).main())
     if CONFIG["twitch"].getboolean("is_follows"):
-        asyncio.create_task(TwitchFollows(channel, oauth).main())
+        create_task(TwitchFollows(channel, oauth).main())
     if CONFIG["twitch"].getboolean("is_stats"):
-        asyncio.create_task(TwitchStats(channel, oauth).main())
+        create_task(TwitchStats(channel, oauth).main())
 
 
 class Message(MessageABC):

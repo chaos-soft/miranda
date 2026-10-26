@@ -46,6 +46,9 @@ class OAuth(Chat):
         self.credentials_event = asyncio.Event()
         self.load_credentials()
 
+    def delete_credentials_file(self) -> None:
+        get_config_file(self.file_name).unlink()
+
     def dump_credentials(self) -> None:
         with get_config_file(self.file_name).open("w") as f:
             json.dump(self.credentials, f)

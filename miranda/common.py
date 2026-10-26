@@ -1,5 +1,5 @@
 from abc import ABCMeta
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from configparser import ConfigParser
 from datetime import datetime
 from pathlib import Path
@@ -19,6 +19,7 @@ MESSAGES_EVENT: asyncio.Event = asyncio.Event()
 RESTART_EVENT: asyncio.Event = asyncio.Event()
 SHUTDOWN_EVENT: asyncio.Event = asyncio.Event()
 STATS: dict[str, int | str] = {}
+TASKS: set[asyncio.Task] = set()
 TIMEOUT_5S: int = 5
 
 
@@ -91,7 +92,11 @@ class Module:
 
     def start(self):
         if self.is_active:
-            asyncio.create_task(self.module.start())
+            create_task(self.module.start())
+
+
+class ResponseError(Exception):
+    pass
 
 
 class Singleton(type):
@@ -145,6 +150,13 @@ class ModuleManager(metaclass=Singleton):
             module.start()
 
 
+def create_task(coro: Coroutine) -> asyncio.Task:
+    task = asyncio.create_task(coro)
+    TASKS.add(task)
+    task.add_done_callback(task_done)
+    return task
+
+
 async def loop(f: Callable, timeout: int = TIMEOUT_5S) -> None:
     while True:
         await asyncio.sleep(timeout)
@@ -156,19 +168,26 @@ async def make_request(
     method: str = "GET",
     timeout: int = 60,
     is_json: bool = True,
+    is_status_code: bool = False,
     **kwargs: Any,
 ) -> Any:
+    status_code = 0
     try:
         async with httpx.AsyncClient() as client:
             r = await client.request(method, url, timeout=timeout, **kwargs)
-            assert r.status_code == 200
+            status_code = r.status_code
+            if r.status_code != 200:
+                raise ResponseError(r)
             if is_json:
                 return r.json()
             else:
                 return r.text
     except Exception as e:
-        print_error(f"{type(e).__name__}: {url}")
-        return None
+        print_error(f"{type(e).__name__}: {e} {url}")
+        if is_status_code:
+            return status_code
+        else:
+            return None
 
 
 def messages_to_dict(messages: list[MessageABC]) -> list[dict]:
@@ -184,6 +203,15 @@ def print_error(e: str) -> None:
 def str_to_list(str_: str) -> list[str]:
     """Парсит строку с запятыми в массив."""
     return list(map(str.strip, str_.split(",")))
+
+
+def task_done(task: asyncio.Task) -> None:
+    TASKS.discard(task)
+    if task.cancelled():
+        return None
+    e = task.exception()
+    if e:
+        logger.exception(e)
 
 
 MESSAGES: UserList = UserList()

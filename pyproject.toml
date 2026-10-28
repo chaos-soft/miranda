@@ -7,12 +7,12 @@ authors = [
     {name = "chaos-soft", email = "mail@57st.su"},
 ]
 dependencies = [
-    "google-api-python-client==2.179.0",
-    "google-auth-httplib2==0.2.0",
-    "google-auth-oauthlib==1.2.2",
+    "google-api-python-client==2.201.0",
+    "google-auth-httplib2==0.4.4",
+    "google-auth-oauthlib==1.5.0",
     "httpx==0.28.1",
-    "packaging==25.0",
-    "websockets==15.0.1",
+    "packaging==26.3",
+    "websockets==17.3",
 ]
 license = {file = "LICENSE"}
 maintainers = [
@@ -21,7 +21,7 @@ maintainers = [
 name = "miranda"
 readme = "README.md"
 requires-python = ">=3.11"
-version = "2025.12"
+version = "2026.11"
 
 [project.scripts]
 miranda = "miranda.__main__:main"
